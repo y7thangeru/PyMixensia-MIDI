@@ -60,10 +60,10 @@ Gunakan tabel ini sebagai panduan saat meracik suara di dalam Editor:
 | **Smart Chord** | **Off**: Nada tunggal. **Octave**: Tambah nada 1 oktav di atas. **Major/Minor**: Chord otomatis. |
 | **Arpeggiator** | Memainkan nada yang ditahan secara bergantian (Up/Down/Random). Bagus untuk suara Pad. |
 | **Velocity Curve** | **Soft**: Respon ringan (Ballad). **Hard**: Respon berat (Rock). **Fixed**: Velocity dikunci di 110. |
-| **Hold Mode** | **Normal**: Sustain standar. **Smart**: Mencegah nota "menumpuk" berlebih (Hemat CPU). |
-| **Ensemble Mode** | **Top**: Ambil nada tertinggi. **Bottom**: Ambil nada terendah. Cocok untuk memisahkan melodi. |
-| **Note Range** | `Min/Max Note`. Batas area keyboard. Set `Min:60` agar layer hanya bunyi dari nada C3 ke atas. |
-| **Vel Range** | `Min/Max Velocity`. Layer hanya bunyi jika ditekan dengan kekerasan tertentu. |
+| **Hold Mode** | `Normal`: Sustain standar. `Smart`: Mencegah nota "menumpuk" berlebih (Hemat CPU). [LENGKAP] |
+| **Ensemble Mode** | `Top`: Ambil nada tertinggi. `Bottom`: Ambil nada terendah. Cocok untuk memisahkan melodi. [LENGKAP] |
+| **Note Range** | `Min/Max Note`. Batas area keyboard. Set `Min:60` agar layer hanya bunyi dari nada C3 ke atas. [LENGKAP] |
+| **Vel Range** | `Min/Max Velocity`. Layer hanya bunyi jika ditekan dengan kekerasan tertentu. [LENGKAP] |
 
 ---
 

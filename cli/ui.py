@@ -186,7 +186,22 @@ def draw_menu(stdscr, engine, config):
         if engine.show_editor:
             stdscr.erase(); stdscr.attron(curses.color_pair(7) | curses.A_BOLD); stdscr.addstr(0, 0, " "*(w-1)); stdscr.addstr(0, (w//2)-15, f" 🛠️  EDITOR: LAYER {engine.editor_layer_idx+1}/16 🛠️ "); stdscr.attroff(curses.color_pair(7))
             layer = engine.layers[engine.editor_layer_idx]
-            fields = [('active', 'STATUS', [True, False]), ('channel', 'CHANNEL', list(range(16))), ('program', 'PROGRAM', list(range(128))), ('volume', 'VOLUME', list(range(128))), ('transpose', 'TRANSPOSE', list(range(-48, 49))), ('chord_mode', 'CHORD', ['off', 'octave', 'major', 'minor', 'power']), ('arp_mode', 'ARP', ['off', 'up', 'down', 'random']), ('vel_curve', 'CURVE', ['linear', 'soft', 'hard', 'fixed'])]
+            fields = [
+                ('active', 'STATUS', [True, False]),
+                ('channel', 'CHANNEL', list(range(16))),
+                ('program', 'PROGRAM', list(range(128))),
+                ('volume', 'VOLUME', list(range(128))),
+                ('transpose', 'TRANSPOSE', list(range(-48, 49))),
+                ('chord_mode', 'CHORD', ['off', 'octave', 'major', 'minor', 'power']),
+                ('arp_mode', 'ARP', ['off', 'up', 'down', 'random']),
+                ('vel_curve', 'CURVE', ['linear', 'soft', 'hard', 'fixed']),
+                ('hold_mode', 'HOLD', ['normal', 'smart']),
+                ('ensemble_mode', 'ENSEMBLE', ['off', 'top', 'bottom', 'middle']),
+                ('min_note', 'MIN NOTE', list(range(128))),
+                ('max_note', 'MAX NOTE', list(range(128))),
+                ('min_vel', 'MIN VEL', list(range(128))),
+                ('max_vel', 'MAX VEL', list(range(128)))
+            ]
             for i, (key, label, options) in enumerate(fields):
                 is_sel = (i == engine.editor_field_idx); val = layer.get(key, "-"); disp = "ON" if val is True else ("OFF" if val is False else str(val))
                 if key == 'channel': disp = str(val+1)
@@ -205,6 +220,12 @@ def draw_menu(stdscr, engine, config):
                 'chord_mode': {'off': "Off: Main nada tunggal.", 'octave': "Octave: Tambah nada (+12).", 'major': "Major: Chord Mayor (1-3-5).", 'minor': "Minor: Chord Minor (1-3b-5).", 'power': "Power: Power chord (1-5)."},
                 'arp_mode': {'off': "Off: Normal.", 'up': "Up: Nada rendah ke tinggi.", 'down': "Down: Nada tinggi ke rendah.", 'random': "Random: Nada acak."},
                 'vel_curve': {'linear': "Linear: Standar.", 'soft': "Soft: Sensitif/Ballad.", 'hard': "Hard: Berat/Rock.", 'fixed': "Fixed: Dikunci di 100."},
+                'hold_mode': {'normal': "Normal: Sustain standar.", 'smart': "Smart: Mencegah nota menumpuk berlebih (Hemat CPU)."},
+                'ensemble_mode': {'off': "Off: Normal.", 'top': "Top: Hanya ambil nada tertinggi.", 'bottom': "Bottom: Hanya ambil nada terendah.", 'middle': "Middle: Ambil nada tengah (Pemisah melodi/bass)."},
+                'min_note': "Min Note: Batas nada terendah (0-127). C3 = 60.",
+                'max_note': "Max Note: Batas nada tertinggi (0-127).",
+                'min_vel': "Min Velocity: Batas kekerasan tekanan minimal (0-127).",
+                'max_vel': "Max Velocity: Batas kekerasan tekanan maksimal (0-127).",
             }
             selected_key = fields[engine.editor_field_idx][0]
             help_data = field_help.get(selected_key, "")
