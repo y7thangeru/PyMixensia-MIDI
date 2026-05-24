@@ -125,6 +125,48 @@ def draw_menu(stdscr, engine, config):
                 ('min_vel', 'Min Velocity', list(range(128))),
                 ('max_vel', 'Max Velocity', list(range(128))),
             ]
+            # Exhaustive Field Descriptions (Manual V2)
+            field_help = {
+                'active': "Status Aktif: [ON] Bunyi, [OFF] Senyap. Gunakan untuk layering suara (Piano+Strings).",
+                'channel': "MIDI Channel: Saluran output (1-16). Harus sama dengan channel di VST/Synthesizer Anda.",
+                'program': "Program Change: Suara instrumen GM. Contoh: 0:Grand Piano, 19:Church Organ, 40:Violin, 52:Choir.",
+                'volume': "Volume: Level suara (0-127). Atur volume per layer untuk mendapatkan mix yang seimbang.",
+                'transpose': "Transpose: Geser nada per semitone. +12 = naik 1 oktav, -12 = turun 1 oktav.",
+                'chord_mode': {
+                    'off': "Smart Chord [Off]: Main nada tunggal (standar).",
+                    'octave': "Smart Chord [Octave]: Menambah 1 nada (12 semitone di atas). Suara jadi lebih megah/lebar.",
+                    'major': "Smart Chord [Major]: Menambah nada ke-3 & ke-5 (Mayor). Tekan C bunyi chord C-E-G.",
+                    'minor': "Smart Chord [Minor]: Menambah nada ke-3 minor & ke-5. Tekan C bunyi chord C-Eb-G.",
+                    'power': "Smart Chord [Power]: Menambah nada ke-5 & oktav. Cocok untuk Rock Guitar/Lead Synth."
+                },
+                'arp_mode': {
+                    'off': "Arpeggiator [Off]: Nada dimainkan bersamaan (Polyphonic).",
+                    'up': "Arpeggiator [Up]: Memainkan nada dari yang terendah ke tertinggi secara berurutan.",
+                    'down': "Arpeggiator [Down]: Memainkan nada dari yang tertinggi ke terendah secara berurutan.",
+                    'random': "Arpeggiator [Random]: Memainkan nada yang ditahan secara acak."
+                },
+                'vel_curve': {
+                    'linear': "Curve [Linear]: Respon standar. Kekerasan suara sama dengan kekerasan tekanan tuts.",
+                    'soft': "Curve [Soft]: Respon ringan. Tekan pelan sudah menghasilkan suara yang cukup jelas (Ballad).",
+                    'hard': "Curve [Hard]: Respon berat. Harus ditekan keras untuk suara kencang (Rock/Percussive).",
+                    'fixed': "Curve [Fixed]: Velocity dikunci di 100. Cocok untuk suara Organ atau Synth Lead."
+                },
+                'hold_mode': {
+                    'normal': "Hold Mode [Normal]: Pedal sustain bekerja standar seperti keyboard biasa.",
+                    'smart': "Hold Mode [Smart]: Mencegah penumpukan nota berlebih saat sustain agar CPU tetap ringan."
+                },
+                'ensemble_mode': {
+                    'off': "Ensemble [Off]: Semua jari yang menekan tuts akan membunyikan layer ini.",
+                    'top': "Ensemble [Top]: Hanya nada tertinggi dari akord yang bunyi (untuk Melodi).",
+                    'bottom': "Ensemble [Bottom]: Hanya nada terendah dari akord yang bunyi (untuk Bass).",
+                    'middle': "Ensemble [Middle]: Hanya nada-nada di tengah (bukan terendah/tertinggi) yang bunyi."
+                },
+                'min_note': "Min Note: Batas tuts paling kiri (0-127). Contoh: Set 60 (C3) sebagai titik awal split.",
+                'max_note': "Max Note: Batas tuts paling kanan (0-127). Contoh: Set 59 agar Bass hanya bunyi di kiri.",
+                'min_vel': "Min Velocity: Tekanan minimal agar bunyi. Contoh: Set 100 agar Strings bunyi hanya saat ditekan keras.",
+                'max_vel': "Max Velocity: Tekanan maksimal. Contoh: Set 80 agar Piano hilang saat Anda menekan sangat keras."
+            }
+
             for i, (key, label, options) in enumerate(fields):
                 attr = curses.A_REVERSE if i == engine.editor_field_idx else curses.A_NORMAL
                 val = layer.get(key, "-")
@@ -134,6 +176,23 @@ def draw_menu(stdscr, engine, config):
                     instr_name = engine.gm_instruments[val] if val < len(engine.gm_instruments) else "Unknown"
                     disp_val = f"{val} ({instr_name})"
                 stdscr.addstr(4 + i, 4, f"{label:<20} : {disp_val}", attr)
+
+            # Draw Detailed Description Box
+            desc_y = 4 + len(fields) + 1
+            selected_key = fields[engine.editor_field_idx][0]
+            help_data = field_help.get(selected_key, "")
+            
+            # If help_data is a dict, get the specific option description
+            if isinstance(help_data, dict):
+                curr_val = layer.get(selected_key)
+                desc_text = help_data.get(curr_val, f"Info untuk {selected_key}")
+            else:
+                desc_text = help_data
+
+            stdscr.attron(curses.color_pair(3) | curses.A_BOLD)
+            stdscr.addstr(desc_y, 4, f"» TUTORIAL: {desc_text[:w-15]}")
+            stdscr.attroff(curses.color_pair(3) | curses.A_BOLD)
+
             stdscr.addstr(h-4, 2, "[Arrows] Navigate/Change  [TAB] Next Layer  [S] Save  [A] Save As  [ESC/F2] Close", curses.A_DIM)
             stdscr.refresh()
             ek = stdscr.getch()

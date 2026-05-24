@@ -13,6 +13,11 @@ class MixensiaEngine:
         self.disable_splits = False
         self.notifications = deque(maxlen=5) 
         self.midi_monitor = deque(maxlen=10)
+        self.show_monitor = False
+        self.show_help = False
+        self.show_editor = False
+        self.editor_layer_idx = 0
+        self.editor_field_idx = 0
         self.last_key_name = ""
         self.last_key_time = 0
         
