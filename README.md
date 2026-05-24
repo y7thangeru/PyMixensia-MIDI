@@ -1,59 +1,71 @@
-# PyMixensia-MIDI
+# PyMixensia-MIDI (Extended Edition)
 
-PyMixensia-MIDI adalah engine MIDI berbasis Python yang dirancang untuk pengolahan MIDI real-time dengan dukungan multi-layer, zona keyboard (splits), dan fitur ensemble. Aplikasi ini menggunakan antarmuka baris perintah (CLI) berbasis `curses` untuk performa yang ringan dan responsif.
+PyMixensia-MIDI adalah engine MIDI berbasis Python yang dirancang untuk pengolahan MIDI real-time tingkat lanjut. Proyek ini berfokus pada fleksibilitas live performance dengan dukungan multi-layer, zona keyboard (splits), kurva ekspresi, dan manajemen preset yang intuitif langsung dari terminal.
 
 ## Fitur Utama
 
-- **16 Layer Independen**: Setiap layer dapat dikonfigurasi dengan channel MIDI, program change (patch), bank (MSB/LSB), dan volume yang berbeda.
-- **Keyboard Splitting**: Tentukan rentang nota (`min_note` hingga `max_note`) untuk setiap layer untuk membuat pembagian zona pada keyboard MIDI.
-- **Velocity Filtering & Fading**: Kontrol sensitivitas nota berdasarkan kecepatan tekan (velocity), termasuk fitur *fade-in* dan *fade-out* velocity.
-- **Ensemble Modes**:
-    - `Top`: Hanya nota tertinggi yang dimainkan pada layer tersebut.
-    - `Bottom`: Hanya nota terendah yang dimainkan.
-    - `Middle`: Memainkan nota di antara yang tertinggi dan terendah.
-- **Sustain Handling**: Mendukung pedal sustain (CC 64) dengan fitur *smart kill* untuk mencegah penumpukan nota yang tidak diinginkan.
-- **Preset Management**: Simpan dan muat konfigurasi layer dengan mudah menggunakan file JSON `.cfg`.
-- **Panic Button**: Matikan semua nota yang menggantung secara instan.
-- **Antarmuka CLI**: Navigasi cepat menggunakan keyboard tanpa perlu mouse.
-
-## Persyaratan Sistem
-
-- Python 3.12+
-- Library MIDI: `mido`, `python-rtmidi`
-- Antarmuka: `curses` (bawaan Linux), `customtkinter` (untuk pengembangan GUI mendatang)
+- **16 Layer Independen**: Konfigurasi mandiri untuk channel MIDI, patch instrumen (GM), volume, dan transpose.
+- **Preset Editor (F2)**: Edit seluruh parameter 16 layer secara real-time melalui antarmuka visual tanpa perlu menyentuh file JSON.
+- **Smart Instrument Naming**: Nama layer secara otomatis mengikuti instrumen MIDI yang dipilih.
+- **Velocity Dynamics**:
+    - **Velocity Curves**: Pilihan kurva `soft`, `hard`, atau `fixed` untuk menyesuaikan respon ekspresi tuts.
+    - **Global Fixed Velocity (F)**: Paksa semua output ke velocity tetap (110) secara instan.
+- **Live Performance Controls**:
+    - **Master Transpose**: Menaikkan/menurunkan nada seluruh engine secara global.
+    - **Sustain Toggle (O)**: Mengaktifkan atau menonaktifkan deteksi pedal sustain (CC 64).
+    - **Layer Mixer**: Pilih layer aktif dengan `TAB` dan sesuaikan volume dengan `+`/`-`.
+- **MIDI Monitoring (M)**: Overlay monitor pesan MIDI yang masuk untuk kemudahan debugging.
+- **Panic Protection**: Tombol Panic instan dan fitur Auto-Panic saat engine dihentikan.
 
 ## Instalasi
 
-Gunakan skrip `run.sh` untuk melakukan setup otomatis (membuat virtual environment dan menginstal dependensi):
+Aplikasi ini berjalan di Linux (optimal di ThinkPad X131e) menggunakan virtual environment untuk memastikan kestabilan dependensi.
 
-```bash
-chmod +x run.sh
-./run.sh
-```
+1. Beri izin eksekusi pada skrip run:
+   ```bash
+   chmod +x run.sh run_extended.sh
+   ```
+2. Jalankan versi Extended (Sangat Direkomendasikan):
+   ```bash
+   ./run_extended.sh
+   ```
 
-## Penggunaan (Kontrol CLI)
+## Panduan Keyboard Shortcuts
 
-Setelah menjalankan aplikasi, gunakan tombol berikut untuk mengoperasikannya:
-
-- **[S]**: Start/Stop MIDI Engine.
-- **[L]**: Membuka menu daftar Preset. Gunakan panah Atas/Bawah dan Enter untuk memilih.
-- **[X]**: Toggle Keyboard Splits (Aktifkan/Nonaktifkan pembagian zona secara global).
-- **[P]**: Panic Button (Kirim *All Notes Off* ke semua channel).
-- **[1]**: Ganti Input MIDI Port.
-- **[2]**: Ganti Output MIDI Port.
-- **[Panah Atas/Bawah]**: Pindah preset secara cepat (Quick Switch).
+### Navigasi Utama
+- **[F1]**: Membuka/Menutup menu Bantuan.
+- **[S]**: Start atau Stop MIDI Engine.
+- **[L]**: Membuka daftar Preset yang tersimpan.
 - **[Q]**: Keluar dari aplikasi.
+- **[UP / DN]**: Ganti preset secara cepat (Quick Cycle).
+
+### Kontrol Performa
+- **[TAB]**: Memilih layer aktif (ditandai dengan `>>`).
+- **[ + ] / [ - ]**: Mengatur volume layer yang sedang dipilih.
+- **[ [ ] / [ ] ]**: Master Transpose (Naik/Turun nada secara global).
+- **[O]**: Aktifkan/Matikan fungsi Pedal Sustain.
+- **[F]**: Aktifkan/Matikan Global Fixed Velocity (Semua nada dipaksa ke velocity 110).
+- **[X]**: Aktifkan/Matikan Keyboard Splits (Zona nada).
+- **[M]**: Tampilkan/Sembunyikan MIDI Monitor.
+- **[P]**: PANIC! (Kirim *All Notes Off* ke semua channel).
+
+### Management Preset & Editor
+- **[F2]**: Masuk ke Preset Editor (Selalu mulai dari Layer 1).
+- **[F3]**: Buat Preset Baru (Reset semua layer ke kondisi bersih).
+- **Di dalam Editor**:
+    - **[Arrows]**: Navigasi parameter dan ubah nilai.
+    - **[TAB]**: Pindah ke layer berikutnya.
+    - **[S]**: **Smart Save** (Menimpa file jika sedang mengedit, atau minta nama baru jika preset baru).
+    - **[A]**: **Save As** (Selalu minta nama baru).
+    - **[ESC / F2]**: Tutup Editor.
 
 ## Struktur Proyek
 
-- `mixensia_engine.py`: Script utama yang menjalankan logika MIDI dan antarmuka CLI.
-- `presets/`: Folder tempat penyimpanan file konfigurasi (.cfg).
-- `run.sh`: Script pembantu untuk menjalankan aplikasi dalam virtual environment.
-- `venv/`: Virtual environment Python (dibuat otomatis).
-
-## Pengembangan Mendatang
-
-Meskipun saat ini berbasis CLI, proyek ini sudah menyiapkan dependensi untuk antarmuka grafis (GUI) menggunakan `customtkinter`.
+- `mixensia_engine_extended.py`: Logic engine utama dengan fitur lengkap.
+- `presets/`: Folder penyimpanan konfigurasi `.cfg` (format JSON).
+- `run_extended.sh`: Script peluncur otomatis versi Extended.
+- `mixensia_engine.py`: Versi standar (legacy).
+- `README.md`: Dokumentasi proyek.
 
 ---
-*Dibuat untuk kebutuhan pemrosesan MIDI yang fleksibel dan ringan.*
+*Dibuat untuk musisi yang membutuhkan kontrol MIDI yang cepat, ringan, dan powerful.*

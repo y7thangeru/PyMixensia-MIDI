@@ -323,5 +323,5 @@ def draw_menu(stdscr, engine):
 
 if __name__ == "__main__":
     engine = MixensiaEngine()
-    engine.load_preset("01_Klasik_Piano_12L.cfg")
+    engine.load_preset("01_Klasik_Piano_6L.cfg")
     curses.wrapper(draw_menu, engine)
