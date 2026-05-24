@@ -8,6 +8,7 @@ PyMixensia-MIDI adalah engine MIDI berbasis Python yang dirancang untuk pengolah
 
 ### 1. Arsitektur & Performa
 - **MVC Refactoring**: Pemisahan total antara Engine Inti (`core/`) dan Antarmuka Pengguna (`cli/`) untuk memastikan stabilitas.
+- **Modern High-Contrast CLI**: Tampilan antarmuka yang dipercantik dengan skema warna kontras tinggi (Black on Cyan & Black on Yellow) untuk keterbacaan maksimal di panggung.
 - **Ultra-Low Latency**: Operasi berbasis terminal murni menjamin respon MIDI instan (sub-millisecond overhead).
 - **Auto-Reconnect (QoL)**: Deteksi otomatis kabel USB MIDI. Jika terputus, engine akan otomatis menyambung kembali saat kabel dicolokkan tanpa perlu restart aplikasi.
 - **Settings Memory**: Menyimpan otomatis setelan global (Port, Transpose, dll) ke `settings.json`.
@@ -31,7 +32,7 @@ PyMixensia-MIDI/
 │   ├── engine.py           # Pemrosesan sinyal MIDI, Threading, Arp, & Logic.
 │   └── config.py           # Manajemen file .cfg (Preset) & settings.json.
 ├── cli/                    # Antarmuka Pengguna (The View/Controller)
-│   └── ui.py               # Render tampilan Curses & Penanganan Shortcut.
+│   └── ui.py               # Render tampilan Curses High-Contrast & Tutorial.
 ├── presets/                # Database konfigurasi suara (.cfg).
 ├── mixensia_engine_extended.py # Entry Point (Penghubung utama).
 ├── run_extended.sh         # Launch script (Linux).
@@ -39,9 +40,9 @@ PyMixensia-MIDI/
 ```
 
 ### Analisis Kode Inti
-1. **`MixensiaEngine` (core/engine.py)**: Jantung aplikasi. Berjalan di thread terpisah. Menggunakan *callback-like architecture* untuk memproses pesan masuk tanpa memblokir input lainnya. Mendukung manipulasi nota (transposisi, chord generation) secara real-time.
-2. **`ConfigManager` (core/config.py)**: Menangani sinkronisasi antara memori RAM dan penyimpanan disk. Memastikan data preset lama tetap kompatibel dengan fitur baru melalui skema *default-value injection*.
-3. **`draw_menu` (cli/ui.py)**: Menggunakan library `curses` dengan optimasi `erase()` untuk menghilangkan *flickering*. Mengimplementasikan sistem *state-machine* sederhana untuk beralih antara menu Utama, Editor, dan Help.
+1. **`MixensiaEngine` (core/engine.py)**: Jantung aplikasi. Berjalan di thread terpisah. Mendukung manipulasi nota (transposisi, chord generation) secara real-time.
+2. **`ConfigManager` (core/config.py)**: Menangani sinkronisasi antara RAM dan Disk. Menjamin kompatibilitas preset lama melalui sistem default-injection.
+3. **`draw_menu` (cli/ui.py)**: Menggunakan sistem warna kontras tinggi untuk memastikan visibilitas di lingkungan gelap atau panggung.
 
 ---
 
@@ -51,18 +52,18 @@ Di dalam **Preset Editor (F2)**, terdapat berbagai parameter yang bisa dikonfigu
 
 | Parameter | Deskripsi & Contoh Penggunaan |
 | :--- | :--- |
-| **Active Status** | `ON/OFF`. Menentukan apakah layer berbunyi. Gunakan banyak layer untuk suara tebal (Piano + Strings). |
-| **MIDI Channel** | `1-16`. Saluran output. Pastikan sama dengan instrumen di VST/Synthesizer Anda. |
-| **Program Change** | Memilih jenis suara (0-127). Disertai nama instrumen GM otomatis (0: Piano, 19: Organ, dll). |
-| **Volume** | `0-127`. Mengatur balance. Kecilkan Strings agar tidak menutupi kejelasan nada Piano. |
-| **Transpose** | Menggeser nada dalam semitone. Set `+12` untuk menaikkan suara 1 oktav. |
-| **Smart Chord** | **Off**: Nada tunggal. **Octave**: Tambah nada 1 oktav di atas. **Major/Minor**: Chord otomatis 3 nada. |
-| **Arpeggiator** | Memainkan nada yang ditahan secara bergantian (Up/Down/Random). Bagus untuk Synth Pad. |
-| **Velocity Curve** | **Soft**: Respon ringan (untuk Ballad). **Hard**: Respon berat (untuk Rock). **Fixed**: Velocity dikunci di 110. |
-| **Hold Mode** | **Normal**: Sustain standar. **Smart**: Mencegah nota "menumpuk" terlalu banyak (hemat CPU). |
-| **Ensemble Mode** | **Top**: Ambil nada tertinggi. **Bottom**: Ambil nada terendah. Cocok untuk memisahkan melodi dan bass. |
-| **Note Range** | `Min/Max Note`. Batas area keyboard. Set `Min:60` agar layer hanya bunyi dari nada C3 ke atas. |
-| **Vel Range** | `Min/Max Velocity`. Layer hanya bunyi jika Anda menekan tuts dengan kekerasan tertentu. |
+| **Active Status** | `ON/OFF`. Menentukan apakah layer berbunyi. Gunakan layering untuk suara Hybrid (Piano+Strings). |
+| **MIDI Channel** | `1-16`. Saluran output. Harus sama dengan instrumen di VST/Synthesizer Anda. |
+| **Program Change** | Memilih jenis suara (0-127). Disertai nama instrumen GM otomatis. |
+| **Volume** | `0-127`. Mengatur balance antar layer suara. |
+| **Transpose** | Menggeser nada dalam semitone. Set `+12` untuk naik 1 oktav. |
+| **Smart Chord** | **Off**: Nada tunggal. **Octave**: Tambah nada 1 oktav di atas. **Major/Minor**: Chord otomatis. |
+| **Arpeggiator** | Memainkan nada yang ditahan secara bergantian (Up/Down/Random). |
+| **Velocity Curve** | **Soft**: Respon ringan (Ballad). **Hard**: Respon berat (Rock). **Fixed**: Velocity dikunci di 100. |
+| **Hold Mode** | **Normal**: Sustain standar. **Smart**: Mencegah suara pecah/menumpuk nota berlebih. |
+| **Ensemble Mode** | **Top**: Ambil nada tertinggi. **Bottom**: Ambil nada terendah. Cocok untuk bassline. |
+| **Note Range** | `Min/Max Note`. Batas area keyboard. Set `Min:60` agar layer hanya bunyi dari C3 ke atas. |
+| **Vel Range** | `Min/Max Velocity`. Layer hanya bunyi jika ditekan dengan kekerasan tertentu. |
 
 ---
 
@@ -79,4 +80,4 @@ Di dalam **Preset Editor (F2)**, terdapat berbagai parameter yang bisa dikonfigu
 - **[S]**: Save (Overwrite) | **[A]**: Save As (Nama Baru) | **[ESC]**: Keluar.
 
 ---
-*PyMixensia-MIDI V2 - Kecepatan CLI, Kekuatan Profesional.*
+*PyMixensia-MIDI V2 - Kecepatan CLI, Kontras Tinggi, Kekuatan Profesional.*
