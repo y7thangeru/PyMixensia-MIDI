@@ -1,4 +1,5 @@
 import curses
+import time
 from core.engine import MixensiaEngine
 from core.config import ConfigManager
 from cli.ui import draw_menu
@@ -25,14 +26,32 @@ GM_INSTRUMENTS = [
 ]
 
 def main():
-    engine = MixensiaEngine(GM_INSTRUMENTS)
-    config = ConfigManager(engine)
-    
-    # Load settings and last preset
-    config.load_settings()
-    
-    # Start UI
-    curses.wrapper(draw_menu, engine, config)
+    try:
+        engine = MixensiaEngine(GM_INSTRUMENTS)
+        config = ConfigManager(engine)
+        
+        # Load settings and last preset
+        s = config.load_settings()
+        
+        # Auto-Connect if preferred device is found
+        pref_in = s.get('last_in_port')
+        pref_out = s.get('last_out_port')
+        
+        # Give a small moment for port scanner thread to populate
+        time.sleep(0.5) 
+        
+        if pref_in and pref_out:
+            if pref_in in engine.available_in_ports and pref_out in engine.available_out_ports:
+                engine.start(pref_in, pref_out)
+        
+        # Start UI
+        curses.wrapper(draw_menu, engine, config)
+    except KeyboardInterrupt:
+        print("\n[!] Program dihentikan oleh pengguna.")
+    except Exception as e:
+        print(f"\n[X] Terjadi kesalahan fatal: {str(e)}")
+    finally:
+        print("[*] Selesai.")
 
 if __name__ == "__main__":
     main()

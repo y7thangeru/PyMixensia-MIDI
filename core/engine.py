@@ -16,6 +16,9 @@ class MixensiaEngine:
         self.show_monitor = False
         self.show_help = False
         self.show_editor = False
+        self.show_visualizer = False
+        self.visualizer_mode = 0 # 0: Firework, 1: Stars, 2: Ripple, 3: Falling, 4: Tetris
+        self.particles = [] # List for animation objects
         self.editor_layer_idx = 0
         self.editor_field_idx = 0
         self.last_key_name = ""
@@ -44,25 +47,39 @@ class MixensiaEngine:
         
         self.last_in_name = None
         self.last_out_name = None
+        self.available_in_ports = []
+        self.available_out_ports = []
+        
         self.reconnect_thread = threading.Thread(target=self._auto_reconnect_loop, daemon=True)
         self.reconnect_thread.start()
+        
+        self.port_scanner_thread = threading.Thread(target=self._port_scanner_loop, daemon=True)
+        self.port_scanner_thread.start()
+
+    def _port_scanner_loop(self):
+        while True:
+            try:
+                # Get ports in background thread
+                self.available_in_ports = mido.get_input_names()
+                self.available_out_ports = mido.get_output_names()
+            except:
+                pass
+            time.sleep(3.0) # Scan every 3 seconds
 
     def _auto_reconnect_loop(self):
         while True:
             if self.running and (self.last_in_name or self.last_out_name):
-                # Check if ports are still available
-                try:
-                    in_names = mido.get_input_names()
-                    out_names = mido.get_output_names()
-                    
-                    needs_reconnect = False
-                    if self.last_in_name and self.last_in_name not in in_names: needs_reconnect = True
-                    if self.last_out_name and self.last_out_name not in out_names: needs_reconnect = True
-                    
-                    if needs_reconnect:
-                        self.add_notification("Connection Lost! Attempting reconnect...")
-                        self._do_reconnect(in_names, out_names)
-                except: pass
+                # Check using the lists scanned by port_scanner_thread
+                in_names = self.available_in_ports
+                out_names = self.available_out_ports
+                
+                needs_reconnect = False
+                if self.last_in_name and self.last_in_name not in in_names: needs_reconnect = True
+                if self.last_out_name and self.last_out_name not in out_names: needs_reconnect = True
+                
+                if needs_reconnect:
+                    self.add_notification("Connection Lost! Reconnecting...")
+                    self._do_reconnect(in_names, out_names)
             time.sleep(2.0)
 
     def _arp_loop(self):
@@ -153,7 +170,19 @@ class MixensiaEngine:
             self.process_message(msg)
 
     def process_message(self, msg):
-        self.midi_monitor.append(f"CH{msg.channel if hasattr(msg, 'channel') else '-'}: {msg.type.upper()} {str(msg).split(' ', 1)[1] if ' ' in str(msg) else ''}")
+        # Improved MIDI Monitor Formatting
+        ch_str = f"CH {msg.channel+1:02d}" if hasattr(msg, 'channel') else "SYSTEM"
+        m_type = msg.type.upper().replace('_', ' ')
+        
+        detail = ""
+        if msg.type in ['note_on', 'note_off']:
+            detail = f" | Note: {msg.note:3d} | Vel: {msg.velocity:3d}"
+        elif msg.type == 'control_change':
+            detail = f" | CC: {msg.control:3d} | Val: {msg.value:3d}"
+        elif msg.type == 'program_change':
+            detail = f" | PGM: {msg.program:3d}"
+        
+        self.midi_monitor.append(f"[{ch_str}] {m_type:<10}{detail}")
 
         if msg.type == 'note_on' and msg.velocity > 0:
             self.handle_note_on(msg)
