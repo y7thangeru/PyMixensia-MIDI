@@ -240,231 +240,121 @@ class PresetSelector(Frame):
 
 class LayerEditor(Frame):
     def __init__(self, screen, engine, config):
-        super(LayerEditor, self).__init__(screen, screen.height, screen.width, has_border=True, title=f" 🛠️  EDITOR: {engine.current_preset_name} 🛠️ ")
+        super(LayerEditor, self).__init__(screen, screen.height, screen.width, has_border=True, title=" LAYER EDITOR ")
         self._engine = engine
         self._config = config
         self._layer_idx = 0
-        self._updating_widgets = False
+        self._updating = False
         
-        # New Stable Layout: Left (Layers), Right (Params + Help)
-        layout = Layout([1, 4], fill_frame=True)
+        # Single robust layout
+        layout = Layout([1, 1], fill_frame=True)
         self.add_layout(layout)
         
-        # Col 0: Layer Selection (Reduced height for compatibility)
+        # Left: Layer list and buttons
         layout.add_widget(Label("--- LAYERS ---"), 0)
-        self._layer_list = ListBox(10, self._get_layer_options(), on_change=self._on_layer_change)
+        self._layer_list = ListBox(8, self._get_layer_options(), on_change=self._on_layer_change)
         layout.add_widget(self._layer_list, 0)
         layout.add_widget(Divider(), 0)
-        layout.add_widget(Button("SAVE PRESET", self._save), 0)
-        layout.add_widget(Button("SAVE AS...", self._save_as), 0)
-        layout.add_widget(Button("BACK TO MENU", self._back), 0)
+        layout.add_widget(Button("SAVE", self._save), 0)
+        layout.add_widget(Button("SAVE AS", self._save_as), 0)
+        layout.add_widget(Button("EXIT", self._back), 0)
         
-        # Col 1: Parameters & Manual
-        layout.add_widget(Label("--- PARAMETERS ---"), 1)
-        self._active = CheckBox("Active Status", label="STATUS   :", on_change=self._update_layer)
-        self._channel = DropdownList([(str(i+1), i) for i in range(16)], label="CHANNEL  :", on_change=self._update_layer)
-        self._program = DropdownList([(f"{i}: {name}", i) for i, name in enumerate(engine.gm_instruments)], label="PROGRAM  :", on_change=self._update_layer)
-        self._volume = Text(label="VOLUME   :", on_change=self._update_layer)
-        self._transpose = Text(label="TRANSPOSE:", on_change=self._update_layer)
+        # Right: All Parameters (Vertical scroll)
+        layout.add_widget(Label("--- SETTINGS ---"), 1)
+        self._active = CheckBox("Active", label="STATUS :", on_change=self._update)
+        self._pgm = DropdownList([(f"{i}: {n}", i) for i, n in enumerate(engine.gm_instruments)], label="PGM    :", on_change=self._update)
+        self._vol = Text(label="VOLUME :", on_change=self._update)
+        self._trans = Text(label="TRANS  :", on_change=self._update)
+        self._chord = DropdownList([('Off', 'off'), ('Octave', 'octave'), ('Major', 'major'), ('Minor', 'minor')], label="CHORD  :", on_change=self._update)
+        self._arp = DropdownList([('Off', 'off'), ('Up', 'up'), ('Down', 'down')], label="ARP    :", on_change=self._update)
         
-        self._chord = DropdownList([('Off', 'off'), ('Octave', 'octave'), ('Major', 'major'), ('Minor', 'minor'), ('Power', 'power')], label="CHORD    :", on_change=self._update_layer)
-        self._arp = DropdownList([('Off', 'off'), ('Up', 'up'), ('Down', 'down'), ('Random', 'random')], label="ARP      :", on_change=self._update_layer)
-        self._curve = DropdownList([('Linear', 'linear'), ('Soft', 'soft'), ('Hard', 'hard'), ('Fixed', 'fixed')], label="CURVE    :", on_change=self._update_layer)
-        self._hold = DropdownList([('Normal', 'normal'), ('Smart', 'smart')], label="HOLD     :", on_change=self._update_layer)
-        self._ensemble = DropdownList([('Off', 'off'), ('Top', 'top'), ('Bottom', 'bottom'), ('Middle', 'middle')], label="ENSEMBLE :", on_change=self._update_layer)
-        
-        self._min_note = Text(label="MIN NOTE :", on_change=self._update_layer)
-        self._max_note = Text(label="MAX NOTE :", on_change=self._update_layer)
-        self._min_vel = Text(label="MIN VEL  :", on_change=self._update_layer)
-        self._max_vel = Text(label="MAX VEL  :", on_change=self._update_layer)
-
-        for w in [self._active, self._channel, self._program, self._volume, self._transpose, self._chord, self._arp, self._curve, self._hold, self._ensemble, self._min_note, self._max_note, self._min_vel, self._max_vel]:
+        for w in [self._active, self._pgm, self._vol, self._trans, self._chord, self._arp]:
             layout.add_widget(w, 1)
         
         layout.add_widget(Divider(), 1)
-        layout.add_widget(Label("--- MANUAL GUIDE ---"), 1)
-        self._help_text = Label("Focus a field to see help here...")
-        layout.add_widget(self._help_text, 1)
+        self._help = Label("Select a field to see details.")
+        layout.add_widget(self._help, 1)
         
         self.fix()
         self._on_layer_change()
 
-    def reset(self):
-        """Force a full refresh of the UI when data might have changed externally (e.g. preset load)"""
-        self._layer_list.options = self._get_layer_options()
-        self._layer_list.value = 0
-        self._on_layer_change()
-
     def _get_layer_options(self):
-        options = []
-        for i, layer in enumerate(self._engine.layers):
-            status = "[ON]" if layer['active'] else "[..]"
-            name = layer['name'][:20]
-            options.append((f"{i+1:02d} {status} {name}", i))
-        return options
+        return [(f"{i+1:02d} {'[ON]' if l['active'] else '[..]'} {l['name'][:15]}", i) for i, l in enumerate(self._engine.layers)]
 
     def _on_layer_change(self):
-        self._updating_widgets = True
+        self._updating = True
         self._layer_idx = self._layer_list.value if self._layer_list.value is not None else 0
         layer = self._engine.layers[self._layer_idx]
-        
-        # Sync widgets with layer data
         self._active.value = layer['active']
-        self._channel.value = layer['channel']
-        self._program.value = layer['program']
-        self._volume.value = str(layer['volume'])
-        self._transpose.value = str(layer['transpose'])
+        self._pgm.value = layer['program']
+        self._vol.value = str(layer['volume'])
+        self._trans.value = str(layer['transpose'])
         self._chord.value = layer.get('chord_mode', 'off')
         self._arp.value = layer.get('arp_mode', 'off')
-        self._curve.value = layer.get('vel_curve', 'linear')
-        self._hold.value = layer.get('hold_mode', 'normal')
-        self._ensemble.value = layer.get('ensemble_mode', 'off')
-        self._min_note.value = str(layer.get('min_note', 0))
-        self._max_note.value = str(layer.get('max_note', 127))
-        self._min_vel.value = str(layer.get('min_vel', 0))
-        self._max_vel.value = str(layer.get('max_vel', 127))
-        self._updating_widgets = False
+        self._updating = False
         self._update_help()
 
-    def _update_layer(self):
-        if getattr(self, '_updating_widgets', False):
-            return
-
+    def _update(self):
+        if self._updating: return
         layer = self._engine.layers[self._layer_idx]
         layer['active'] = self._active.value
-        layer['channel'] = self._channel.value
-        layer['program'] = self._program.value
+        layer['program'] = self._pgm.value
         layer['name'] = self._engine.gm_instruments[layer['program']]
         layer['chord_mode'] = self._chord.value
         layer['arp_mode'] = self._arp.value
-        layer['vel_curve'] = self._curve.value
-        layer['hold_mode'] = self._hold.value
-        layer['ensemble_mode'] = self._ensemble.value
-        
         try:
-            layer['volume'] = int(self._volume.value)
-            layer['transpose'] = int(self._transpose.value)
-            layer['min_note'] = int(self._min_note.value)
-            layer['max_note'] = int(self._max_note.value)
-            layer['min_vel'] = int(self._min_vel.value)
-            layer['max_vel'] = int(self._max_vel.value)
+            layer['volume'] = int(self._vol.value)
+            layer['transpose'] = int(self._trans.value)
         except: pass
-
-        # Update layer list display dynamically
         self._layer_list.options = self._get_layer_options()
-        self._update_help()
-        
         if self._engine.running: self._engine.update_all_layer_parameters()
+        self._update_help()
 
     def _update_help(self):
-        pgm_val = self._program.value
-        pgm_name = self._engine.gm_instruments[pgm_val] if pgm_val is not None else "N/A"
-
-        help_data = {
-            "STATUS": f"Status Aktif layer. | HASIL: {'BUNYI' if self._active.value else 'SENYAP'}",
-            "CHANNEL": "Saluran MIDI (1-16). Harus sama dengan Synthesizer Anda.",
-            "PROGRAM": f"Jenis suara (0-127). | INSTRUMEN: {pgm_name}",
-            "VOLUME": "Volume layer (0-127). Atur mix seimbang antar layer.",
-            "TRANSPOSE": "Geser nada. +12 = naik 1 oktav, -12 = turun 1 oktav.",
-            "CHORD": "Smart Chord: Menghasilkan harmoni otomatis dari 1 jari.",
-            "ARP": "Arpeggiator: Memainkan pola nada secara ritmis.",
-            "CURVE": "Sensitivity Curve: Soft (sensitif), Hard (berat), Fixed (rata).",
-            "HOLD": "Smart Hold: Mencegah nota menumpuk (Hemat CPU).",
-            "ENSEMBLE": "Voice Splitting: Top (ambil nada tertinggi saja).",
-            "MIN NOTE": "Batas bawah area keyboard (0-127). 60 = C3.",
-            "MAX NOTE": "Batas atas area keyboard (0-127).",
-            "MIN VEL": "Minimum velocity agar layer berbunyi.",
-            "MAX VEL": "Maximum velocity agar layer berbunyi.",
-        }
-        
-        focused = self.focussed_widget
-        if focused and hasattr(focused, 'label') and focused.label:
-            label = focused.label.replace(":", "").strip()
-            if label in help_data:
-                self._help_text.text = f"💡 {label}: {help_data[label]}"
+        h = {"STATUS": "Enable/Disable this layer.", "PGM": "Choose instrument sound.", "VOLUME": "Set layer loudness.", "CHORD": "Auto harmony mode.", "ARP": "Rhythmic note patterns."}
+        f = self.focussed_widget
+        if f and hasattr(f, 'label') and f.label:
+            lbl = f.label.replace(":", "").strip()
+            self._help.text = h.get(lbl, "Adjust parameters for the selected layer.")
 
     def _save(self):
-        if self._engine.current_preset_name not in ["None", "New Preset"]: 
-            self._config.save_preset(self._engine.current_preset_name)
-        else:
-            self._save_as()
-
+        if self._engine.current_preset_name not in ["None", "New Preset"]: self._config.save_preset(self._engine.current_preset_name)
+        else: self._save_as()
     def _save_as(self):
-        def _on_save(name):
-            if name:
-                if not name.endswith('.cfg'): name += '.cfg'
-                self._config.save_preset(name)
-                self._engine.current_preset_name = name
-        
-        self._scene.add_effect(PopUpDialog(self._screen, "Save Preset As:", ["OK", "CANCEL"], on_close=_on_save, has_input=True))
-
+        def _done(n):
+            if n:
+                if not n.endswith('.cfg'): n += '.cfg'
+                self._config.save_preset(n); self._engine.current_preset_name = n
+        self._scene.add_effect(PopUpDialog(self._screen, "Filename:", ["OK", "CANCEL"], on_close=_done, has_input=True))
     def _back(self): raise NextScene("Main")
-    
     def process_event(self, event):
         res = super(LayerEditor, self).process_event(event)
         self._update_help()
         return res
 
 def draw_menu_v3(screen, engine, config):
-    # Restore V2 Visualizer particle spawning logic
     def visualizer_note_on(msg):
         h, w = screen.dimensions
         x_pos = int((msg.note / 127) * (w - 6)) + 3
-        mode = engine.visualizer_mode
-        
-        if mode == 0: # FIREWORKS
-            color = random.randint(1, 6)
-            for _ in range(15):
-                angle = random.uniform(0, 2 * math.pi)
-                speed = random.uniform(1.0, 3.0)
-                engine.particles.append({'type': 'firework', 'x': float(x_pos), 'y': float(h-4), 'vx': math.cos(angle)*speed*2, 'vy': math.sin(angle)*speed - 2, 'life': 1.5, 'color': color, 'char': random.choice(['█', '▓', '▒'])})
-        elif mode == 1: # STARS
-            engine.particles.append({'type': 'star', 'x': float(x_pos), 'y': 0.0, 'vy': random.uniform(0.2, 0.4), 'color': random.randint(1, 6)})
-        elif mode == 2: # RIPPLES
-            engine.particles.append({'type': 'ripple', 'x': x_pos, 'y': h//2, 'radius': 0.0, 'life': 1.0, 'color': random.randint(1, 6)})
-        elif mode == 3: # BLOCKS
-            engine.particles.append({'type': 'falling', 'x': x_pos, 'y': 0.0, 'len': max(4, msg.velocity//8), 'color': random.randint(1, 6)})
-        elif mode == 4: # TETRIS
-            engine.particles.append({'type': 'tetris', 'x': x_pos-2, 'y': 0.0, 'w': 5, 'h': 2, 'color': random.randint(1, 6)})
-        
+        m = engine.visualizer_mode
+        if m == 0:
+            for _ in range(10): engine.particles.append({'type': 'firework', 'x': float(x_pos), 'y': float(h-4), 'vx': random.uniform(-2,2), 'vy': random.uniform(-3,-1), 'life': 1.0, 'color': random.randint(1,6)})
+        elif m == 3: engine.particles.append({'type': 'falling', 'x': x_pos, 'y': 0.0, 'len': 5, 'color': random.randint(1,6)})
         engine._original_handle_note_on(msg)
 
     if not hasattr(engine, '_original_handle_note_on'):
         engine._original_handle_note_on = engine.handle_note_on
         engine.handle_note_on = visualizer_note_on
 
-    # Create scenes
-    intro_scene = Scene([
-        Stars(screen, screen.width // 2),
-        Print(screen, Rainbow(screen, FigletText("PYMIXENSIA V3", font='slant')), screen.height // 2 - 4, stop_frame=80),
-        Print(screen, StaticRenderer(["POWERED BY ASCIIMATICS"]), screen.height // 2 + 3, colour=Screen.COLOUR_CYAN, stop_frame=80)
-    ], 80, name="Intro")
-
     main_menu = MainMenu(screen, engine, config)
     preset_selector = PresetSelector(screen, engine, config)
     layer_editor = LayerEditor(screen, engine, config)
     visualizer = MIDIVisualizer(screen, engine)
 
-    class EditorRefresher(Effect):
-        def __init__(self, screen, editor, engine):
-            super(EditorRefresher, self).__init__(screen)
-            self._editor = editor
-            self._engine = engine
-        def _update(self, frame_no):
-            if frame_no == 0:
-                self._editor.title = f" 🛠️  EDITOR: {self._engine.current_preset_name} 🛠️ "
-                self._editor.reset()
-        @property
-        def stop_frame(self): return 1
-        def reset(self): pass
-        def process_event(self, event): return event
-
     scenes = [
-        # intro_scene,
         Scene([main_menu], -1, name="Main"),
         Scene([preset_selector], -1, name="Presets"),
-        Scene([EditorRefresher(screen, layer_editor, engine), layer_editor], -1, name="Editor"),
+        Scene([layer_editor], -1, name="Editor"),
         Scene([visualizer], -1, name="Visualizer")
     ]
-    
-    screen.play(scenes, stop_on_resize=True, start_scene=scenes[0])
+    screen.play(scenes, stop_on_resize=True)
