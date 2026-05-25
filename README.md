@@ -11,7 +11,11 @@ Versi V3 adalah lompatan besar dalam sisi visual dan stabilitas UI, menggantikan
 ### ✨ Fitur Unggulan V3
 - **Modern UI Framework**: Menggunakan sistem widget (Frame, Layout, Dropdown, Checkbox) yang jauh lebih stabil dan interaktif.
 - **Dynamic Manual Guide**: Editor F2 kini dilengkapi dengan panel bantuan "Live". Setiap Anda menyorot parameter, penjelasan lengkap mengenai fungsi dan setiap opsinya akan muncul secara otomatis.
-- **Hybrid Visualizer (F4)**: Animasi yang lebih halus dengan dukungan 5 mode asli (Fireworks, Stars, Ripples, Falling, Tetris) ditambah **Demo Mode [D]** untuk melihat animasi tanpa perangkat MIDI.
+- **Hybrid Visualizer (F4)**: Animasi yang lebih halus dengan dukungan 8 mode (5 mode asli + 3 mode baru):
+    *   **SPECTRUM**: Bar equalizer yang naik-turun sesuai nada dan velocity.
+    *   **WORMHOLE**: Efek meluncur cepat melalui terowongan bintang dari tengah layar.
+    *   **LASERS**: Tembakan sinar vertikal yang berkedip dan memudar.
+    *   **Demo Mode [D]**: Melihat preview animasi tanpa perlu perangkat MIDI.
 - **Robust Engine**: Penanganan error tingkat hardware (ALSA resource busy) yang mencegah terminal *hang* atau membeku.
 
 ### 🛠️ Problem & Solusi di V3
