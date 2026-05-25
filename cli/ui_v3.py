@@ -255,6 +255,7 @@ class LayerEditor(Frame):
         layout.add_widget(self._layer_list, 0)
         layout.add_widget(Divider(), 0)
         layout.add_widget(Button("SAVE PRESET", self._save), 0)
+        layout.add_widget(Button("SAVE AS...", self._save_as), 0)
         layout.add_widget(Button("BACK TO MENU", self._back), 0)
         
         # Col 1: Parameters (The full list from V2)
@@ -366,7 +367,20 @@ class LayerEditor(Frame):
                 self._help_example.text = help_data[label][1]
 
     def _save(self):
-        if self._engine.current_preset_name != "None": self._config.save_preset(self._engine.current_preset_name)
+        if self._engine.current_preset_name not in ["None", "New Preset"]: 
+            self._config.save_preset(self._engine.current_preset_name)
+        else:
+            self._save_as()
+
+    def _save_as(self):
+        def _on_save(name):
+            if name:
+                if not name.endswith('.cfg'): name += '.cfg'
+                self._config.save_preset(name)
+                self._engine.current_preset_name = name
+        
+        self._scene.add_effect(PopUpDialog(self._screen, "Save Preset As:", ["OK", "CANCEL"], on_close=_on_save, has_input=True))
+
     def _back(self): raise NextScene("Main")
     
     def process_event(self, event):
