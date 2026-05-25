@@ -238,23 +238,93 @@ class LayerEditor(Frame):
         self._update_help()
 
     def _update_help(self):
+        # Comprehensive Data Mapping for Manual Guide
         h_data = {
-            "STATUS": "Aktifkan atau matikan layer MIDI ini.",
-            "PROGRAM": f"Instrumen: {self._engine.gm_instruments[self._pgm.value or 0]}",
-            "VOLUME": "Volume (0-127). Atur keseimbangan suara.",
-            "TRANSPOSE": "Transpose semitone (+12 = 1 Oktav).",
-            "CHORD": "Smart Chord: Harmoni otomatis (Octave, Major, dll).",
-            "ARP": "Arpeggiator: Pola nada naik/turun/acak.",
-            "CURVE": "Dinamika velocity: Soft, Hard, atau Fixed.",
-            "HOLD": "Smart Hold: Mencegah suara menumpuk berlebih.",
-            "ENSEMBLE": "Pemisah nada: Top (melodi), Bottom (bass).",
-            "MIN NOTE": "Batas nada terendah agar layer berbunyi.",
-            "MAX NOTE": "Batas nada tertinggi agar layer berbunyi.",
+            "STATUS": {
+                "desc": "Aktifkan/matikan layer ini.",
+                "options": {True: "[ON] Layer berbunyi.", False: "[OFF] Layer senyap."}
+            },
+            "PROGRAM": {
+                "desc": "Pilih instrumen MIDI (0-127).",
+                "custom": lambda: f"Suara: {self._engine.gm_instruments[self._pgm.value or 0]}"
+            },
+            "VOLUME": {
+                "desc": "Kekuatan suara (0-127).",
+                "options": {"any": "TIPS: Gunakan level rendah (40-60) untuk Strings/Pad agar tidak menumpuk."}
+            },
+            "TRANSPOSE": {
+                "desc": "Geser nada dasar.",
+                "options": {"any": "Set +12 untuk menaikkan suara 1 oktav."}
+            },
+            "CHORD": {
+                "desc": "Mode Smart Chord (Harmoni Otomatis).",
+                "options": {
+                    'off': "OFF: Main nada tunggal (Single note).",
+                    'octave': "OCT: Tambah nada 1 oktav di atas.",
+                    'major': "MAJOR: Chord Mayor otomatis (1-3-5).",
+                    'minor': "MINOR: Chord Minor otomatis (1-3b-5).",
+                    'power': "POWER: Power chord (1-5-8)."
+                }
+            },
+            "ARP": {
+                "desc": "Mode Arpeggiator (Nada Bergantian).",
+                "options": {
+                    'off': "OFF: Nada dimainkan bersamaan.",
+                    'up': "UP: Nada bergantian dari rendah ke tinggi.",
+                    'down': "DOWN: Nada bergantian dari tinggi ke rendah.",
+                    'random': "RANDOM: Urutan nada acak secara ritmis."
+                }
+            },
+            "CURVE": {
+                "desc": "Kurva Sensitivitas Velocity.",
+                "options": {
+                    'linear': "LINEAR: Respon standar piano.",
+                    'soft': "SOFT: Sensitif (cocok untuk lagu lambat).",
+                    'hard': "HARD: Berat (untuk lagu bertenaga/rock).",
+                    'fixed': "FIXED: Velocity dikunci di level 100."
+                }
+            },
+            "HOLD": {
+                "desc": "Logika Penahanan Nada (Sustain).",
+                "options": {
+                    'normal': "NORMAL: Sustain standar (bisa menumpuk).",
+                    'smart': "SMART: Hemat CPU (nota lama mati jika nota baru banyak)."
+                }
+            },
+            "ENSEMBLE": {
+                "desc": "Pemisah Suara Cerdas (Voice Splitting).",
+                "options": {
+                    'off': "OFF: Semua jari membunyikan layer ini.",
+                    'top': "TOP: Hanya nada tertinggi (Melodi) yang bunyi.",
+                    'bottom': "BOTTOM: Hanya nada terendah (Bass) yang bunyi.",
+                    'middle': "MIDDLE: Hanya nada tengah yang bunyi."
+                }
+            },
+            "MIN NOTE": {"desc": "Batas nada terendah (0-127). 60=C3.", "options": {"any": "Layer hanya bunyi dari nada ini ke atas."}},
+            "MAX NOTE": {"desc": "Batas nada tertinggi (0-127).", "options": {"any": "Layer hanya bunyi hingga nada ini."}},
+            "MIN VEL": {"desc": "Batas tekan terendah (0-127).", "options": {"any": "Layer hanya bunyi jika ditekan minimal sekuat ini."}},
+            "MAX VEL": {"desc": "Batas tekan tertinggi (0-127).", "options": {"any": "Layer hanya bunyi jika ditekan maksimal sekuat ini."}}
         }
+
         f = self.focussed_widget
         if f and hasattr(f, 'label') and f.label:
             lbl = f.label.replace(":", "").strip()
-            self._help.text = f"💡 {h_data.get(lbl, 'Sesuaikan parameter untuk layer ini.')}"
+            if lbl in h_data:
+                data = h_data[lbl]
+                desc = data["desc"]
+                val = f.value
+                
+                # Get option-specific explanation
+                opt_info = ""
+                if "custom" in data:
+                    opt_info = data["custom"]()
+                elif "options" in data:
+                    if val in data["options"]:
+                        opt_info = data["options"][val]
+                    elif "any" in data["options"]:
+                        opt_info = data["options"]["any"]
+                
+                self._help.text = f"💡 {desc} | {opt_info}"
 
     def _save(self):
         if self._engine.current_preset_name not in ["None", "New Preset"]: self._config.save_preset(self._engine.current_preset_name)
