@@ -84,6 +84,13 @@ class MainMenu(Frame):
         layout.add_widget(Button("EDITOR (F2)", self._open_editor), 2)
         layout.add_widget(Button("VISUAL (F4)", self._open_visual), 2)
         layout.add_widget(Button("QUIT (Q)", self._quit), 2)
+
+        # Dashboard Shortcut Footer (V2 Style)
+        layout_footer = Layout([1], fill_frame=False)
+        self.add_layout(layout_footer)
+        layout_footer.add_widget(Divider())
+        layout_footer.add_widget(Label("[S] Start/Stop | [L] Load | [P] Panic | [M] Monitor | [F1] Help | [F2] Editor | [F4] Visual | [Q] Quit"), 0)
+        
         self.fix()
         self._sync()
 
