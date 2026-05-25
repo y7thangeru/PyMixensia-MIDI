@@ -290,6 +290,8 @@ class LayerEditor(Frame):
         layout.add_widget(self._help_desc, 2)
         layout.add_widget(Label(""), 2) # Spacer
         layout.add_widget(self._help_example, 2)
+        # Add a dummy disabled button or readonly text to make layout "live" for focus
+        layout.add_widget(Text(label="INFO", readonly=True), 2)
         
         self.fix()
         self._on_layer_change()
@@ -471,7 +473,7 @@ def draw_menu_v3(screen, engine, config):
         def process_event(self, event): return event
 
     scenes = [
-        intro_scene,
+        # intro_scene,
         Scene([main_menu], -1, name="Main"),
         Scene([preset_selector], -1, name="Presets"),
         Scene([EditorRefresher(screen, layer_editor, engine), layer_editor], -1, name="Editor"),
