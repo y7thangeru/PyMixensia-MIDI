@@ -20,6 +20,10 @@ class MIDIVisualizer(Effect):
         self._engine = engine
         self._local_particles = []
 
+    @property
+    def stop_frame(self):
+        return 0
+
     def _update(self, frame_no):
         h, w = self._screen.dimensions
         mode = self._engine.visualizer_mode
