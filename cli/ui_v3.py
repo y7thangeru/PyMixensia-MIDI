@@ -8,7 +8,7 @@ from asciimatics.renderers import FigletText, Rainbow, StaticRenderer
 from asciimatics.scene import Scene
 from asciimatics.screen import Screen
 from asciimatics.exceptions import ResizeScreenError, StopApplication, NextScene
-from asciimatics.widgets import Frame, Layout, Label, Divider, ListBox, Text, Button, CheckBox, DropdownList, PopUpDialog
+from asciimatics.widgets import Frame, Layout, Label, Divider, ListBox, Text, Button, CheckBox, DropdownList
 
 class LiveDropdownList(DropdownList):
     def __init__(self, options, label=None, name=None, on_change=None, **kwargs):
@@ -160,6 +160,7 @@ class LayerEditor(Frame):
         self._engine, self._config, self._layer_idx, self._updating = engine, config, 0, False
         layout = Layout([1, 2], fill_frame=True)
         self.add_layout(layout)
+        
         layout.add_widget(Label("--- LAYERS ---"), 0)
         self._layer_list = ListBox(16, self._get_options(), on_change=self._on_layer_change)
         layout.add_widget(self._layer_list, 0)
@@ -167,6 +168,7 @@ class LayerEditor(Frame):
         layout.add_widget(Button("SAVE", self._save), 0)
         layout.add_widget(Button("SAVE AS", self._open_save_as), 0)
         layout.add_widget(Button("EXIT", self._back), 0)
+        
         layout.add_widget(Label("--- PARAMETERS ---"), 1)
         self._active = CheckBox("Active Status", label="STATUS   :", on_change=self._on_change)
         self._pgm = LiveDropdownList([(f"{i}: {n}", i) for i, n in enumerate(engine.gm_instruments)], label="PROGRAM  :", on_change=self._on_change)
@@ -181,17 +183,25 @@ class LayerEditor(Frame):
         self._max_n = Text(label="MAX NOTE :", on_change=self._on_change)
         self._min_v = Text(label="MIN VEL  :", on_change=self._on_change)
         self._max_v = Text(label="MAX VEL  :", on_change=self._on_change)
+        
         for w in [self._active, self._pgm, self._vol, self._trans, self._chord, self._arp, self._curve, self._hold, self._ensemble, self._min_n, self._max_n, self._min_v, self._max_v]:
             if isinstance(w, LiveDropdownList): w._parent_frame = self
             layout.add_widget(w, 1)
+            
         layout.add_widget(Divider(), 1)
-        self._help = Label("Select setting for manual guide...")
-        layout.add_widget(self._help, 1)
+        layout.add_widget(Label("--- MANUAL GUIDE ---"), 1)
+        self._help_desc = Label("")
+        self._help_opts = [Label("") for _ in range(5)]
+        layout.add_widget(self._help_desc, 1)
+        for l in self._help_opts: layout.add_widget(l, 1)
         layout.add_widget(Divider(), 1)
-        layout.add_widget(Label("[F2] Close | [S] Quick Save | [A] Save As | [TAB] Navigate"), 1)
+        layout.add_widget(Label("[F2] Close | [S] Quick Save | [A] Save As"), 1)
+        
         self.fix()
         self._on_layer_change()
+        
     def _get_options(self): return [(f"{i+1:02d} {'[ON]' if l['active'] else '[..]'} {l['name'][:15]}", i) for i, l in enumerate(self._engine.layers)]
+    
     def _on_layer_change(self):
         self._updating = True
         self._layer_idx = self._layer_list.value or 0
@@ -203,6 +213,7 @@ class LayerEditor(Frame):
         self._min_v.value, self._max_v.value = str(l.get('min_vel', 0)), str(l.get('max_vel', 127))
         self._updating = False
         self._update_help()
+
     def _on_change(self):
         if self._updating: return
         l = self._engine.layers[self._layer_idx]
@@ -218,35 +229,44 @@ class LayerEditor(Frame):
         self._layer_list.options = self._get_options()
         if self._engine.running: self._engine.update_all_layer_parameters()
         self._update_help()
+
     def _update_help(self):
         h_data = {
-            "STATUS": {"desc": "Aktifkan/matikan layer ini.", "options": {True: "[ON] Layer berbunyi.", False: "[OFF] Layer senyap."}},
-            "PROGRAM": {"desc": "Pilih instrumen MIDI.", "custom": lambda: f"Suara: {self._engine.gm_instruments[self._pgm.value or 0]}"},
-            "VOLUME": {"desc": "Kekuatan suara (0-127).", "any": "TIPS: Level 40-60 cocok untuk layer pengiring."},
-            "TRANSPOSE": {"desc": "Geser nada dasar.", "any": "Set +12 untuk naik 1 oktav."},
-            "CHORD": {"desc": "Mode Smart Chord.", "options": {'off': "OFF: Nada tunggal.", 'octave': "OCT: Tambah oktav.", 'major': "MAJOR: Chord Mayor.", 'minor': "MINOR: Chord Minor.", 'power': "POWER: Power Chord."}},
-            "ARP": {"desc": "Arpeggiator.", "options": {'off': "OFF: Normal.", 'up': "UP: Rendah ke tinggi.", 'down': "DOWN: Tinggi ke rendah.", 'random': "RANDOM: Urutan acak."}},
-            "CURVE": {"desc": "Velocity Curve.", "options": {'linear': "LINEAR: Standar.", 'soft': "SOFT: Lembut.", 'hard': "HARD: Berat.", 'fixed': "FIXED: Rata (100)."}},
-            "HOLD": {"desc": "Sustain Logik.", "options": {'normal': "NORMAL: Standar.", 'smart': "SMART: Hemat CPU."}},
-            "ENSEMBLE": {"desc": "Voice Splitting.", "options": {'off': "OFF: Semua bunyi.", 'top': "TOP: Melodi saja.", 'bottom': "BOTTOM: Bass saja.", 'middle': "MIDDLE: Nada tengah."}},
-            "MIN NOTE": {"desc": "Batas nada bawah.", "any": "Layer hanya bunyi di atas nada ini."},
-            "MAX NOTE": {"desc": "Batas nada atas.", "any": "Layer hanya bunyi di bawah nada ini."},
-            "MIN VEL": {"desc": "Velocity minimal.", "any": "Hanya bunyi jika ditekan kuat."},
-            "MAX VEL": {"desc": "Velocity maksimal.", "any": "Hanya bunyi jika ditekan lembut."}
+            "STATUS": {"desc": "Aktifkan/matikan layer MIDI ini.", "opts": ["OFF: Layer tidak bunyi.", "ON: Layer aktif."]},
+            "PROGRAM": {"desc": "Instrumen General MIDI.", "opts": [f"HASIL: {self._engine.gm_instruments[self._pgm.value or 0]}"]},
+            "VOLUME": {"desc": "Level volume layer (0-127).", "opts": ["TIPS: Volume 40-60 untuk pengiring."]},
+            "TRANSPOSE": {"desc": "Geser nada dasar.", "opts": ["+12: Naik 1 oktav.", "-12: Turun 1 oktav."]},
+            "CHORD": {"desc": "Smart Chord Mode:", "opts": ["OFF: Nada tunggal.", "OCT: Tambah oktav.", "MAJOR: Chord Mayor (1-3-5).", "MINOR: Chord Minor (1-3b-5).", "POWER: Power Chord (1-5-8)."]},
+            "ARP": {"desc": "Arpeggiator Mode:", "opts": ["OFF: Normal.", "UP: Rendah ke tinggi.", "DOWN: Tinggi ke rendah.", "RANDOM: Urutan acak."]},
+            "CURVE": {"desc": "Velocity Curve:", "opts": ["LINEAR: Standar.", "SOFT: Lembut.", "HARD: Berat/Rock.", "FIXED: Rata (100)."]},
+            "HOLD": {"desc": "Logika Sustain:", "opts": ["NORMAL: Standar.", "SMART: Hemat CPU."]},
+            "ENSEMBLE": {"desc": "Voice Splitting:", "opts": ["OFF: Semua bunyi.", "TOP: Melodi saja.", "BOTTOM: Bass saja.", "MIDDLE: Nada tengah."]},
+            "MIN NOTE": {"desc": "Batas nada bawah.", "opts": ["Layer hanya bunyi di atas nada ini."]},
+            "MAX NOTE": {"desc": "Batas nada atas.", "opts": ["Layer hanya bunyi di bawah nada ini."]},
+            "MIN VEL": {"desc": "Velocity minimal.", "opts": ["Hanya bunyi jika ditekan kuat."]},
+            "MAX VEL": {"desc": "Velocity maksimal.", "opts": ["Hanya bunyi jika ditekan lembut."]}
         }
         f = self.focussed_widget
         if f and hasattr(f, 'label') and f.label:
             lbl = f.label.replace(":", "").strip()
+            self._help_desc.text = ""
+            for l in self._help_opts: l.text = ""
             if lbl in h_data:
-                d, val = h_data[lbl], f.value
-                info = d.get("custom", lambda: d.get("options", {}).get(val, d.get("any", "")))() if callable(d.get("custom")) else d.get("options", {}).get(val, d.get("any", ""))
-                self._help.text = f"💡 {d['desc']} | {info}"
+                d = h_data[lbl]
+                self._help_desc.text = f"💡 {lbl}: {d['desc']}"
+                for i, opt in enumerate(d.get("opts", [])):
+                    if i < len(self._help_opts): self._help_opts[i].text = f"  - {opt}"
+
     def _save(self):
         if self._engine.current_preset_name not in ["None", "New Preset"]: self._config.save_preset(self._engine.current_preset_name)
         else: self._open_save_as()
     def _open_save_as(self): raise NextScene("SaveAs")
     def _back(self): raise NextScene("Main")
-    def reset(self): self.title = f" 🛠️ EDITOR: {self._engine.current_preset_name} 🛠️ "; self._layer_list.options = self._get_options(); self._on_layer_change(); super(LayerEditor, self).reset()
+    def reset(self):
+        self.title = f" 🛠️ EDITOR: {self._engine.current_preset_name} 🛠️ "
+        self._layer_list.options = self._get_options()
+        self._on_layer_change()
+        super(LayerEditor, self).reset()
     def process_event(self, event):
         if hasattr(event, 'key_code'):
             if event.key_code == Screen.KEY_F2: self._back()
@@ -266,7 +286,10 @@ def draw_menu_v3(screen, engine, config):
                 for _ in range(5): engine.particles.append({'type': 'firework', 'x': float(x), 'y': float(h-4), 'vx': random.uniform(-1,1), 'vy': random.uniform(-2,-1), 'life': 1.0, 'color': random.randint(1,6)})
             engine._original_handle_note_on(msg)
         engine.handle_note_on = v_on
-    main, presets, editor, visual = MainMenu(screen, engine, config), PresetSelector(screen, engine, config), LayerEditor(screen, engine, config), MIDIVisualizer(screen, engine)
+    main = MainMenu(screen, engine, config)
+    presets = PresetSelector(screen, engine, config)
+    editor = LayerEditor(screen, engine, config)
     save_as = FilenameDialog(screen, lambda n: (config.save_preset(n), setattr(engine, 'current_preset_name', n)))
+    visual = MIDIVisualizer(screen, engine)
     scenes = [Scene([main], -1, name="Main"), Scene([presets], -1, name="Presets"), Scene([editor], -1, name="Editor"), Scene([save_as], -1, name="SaveAs"), Scene([visual], -1, name="Visualizer")]
     screen.play(scenes, stop_on_resize=True)
