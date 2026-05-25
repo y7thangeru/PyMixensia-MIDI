@@ -49,10 +49,10 @@ class MIDIVisualizer(Effect):
 class MainMenu(Frame):
     def __init__(self, screen, engine, config):
         super(MainMenu, self).__init__(screen, screen.height, screen.width, has_border=True, title=" 🎹 PyMixensia V3 Dashboard 🎹 ")
-        self._engine = engine
-        self._config = config
+        self._engine, self._config = engine, config
         layout = Layout([1, 1, 1], fill_frame=True)
         self.add_layout(layout)
+        
         layout.add_widget(Label("--- ENGINE ---"), 0)
         self._status = Label("STOPPED")
         layout.add_widget(self._status, 0)
@@ -62,6 +62,7 @@ class MainMenu(Frame):
         self._sustain = CheckBox("Sustain", on_change=self._update_settings)
         layout.add_widget(self._splits, 0)
         layout.add_widget(self._sustain, 0)
+        
         layout.add_widget(Label("--- PRESET ---"), 1)
         self._preset = Label("None")
         layout.add_widget(self._preset, 1)
@@ -70,6 +71,7 @@ class MainMenu(Frame):
         self._master_t = Text("Transpose:", readonly=True)
         layout.add_widget(self._master_t, 1)
         layout.add_widget(Button("PANIC (P)", self._engine.panic), 1)
+        
         layout.add_widget(Label("--- PORTS ---"), 2)
         self._in_port = DropdownList([("No Ports", 0)], label="IN :")
         self._out_port = DropdownList([("No Ports", 0)], label="OUT:")
@@ -88,8 +90,7 @@ class MainMenu(Frame):
         self._splits.value = not self._engine.disable_splits
         self._sustain.value = self._engine.sustain_enabled
         self._master_t.value = f"{self._engine.master_transpose:+d}"
-        in_p = self._engine.available_in_ports
-        out_p = self._engine.available_out_ports
+        in_p, out_p = self._engine.available_in_ports, self._engine.available_out_ports
         if in_p: self._in_port.options = [(p, i) for i, p in enumerate(in_p)]
         if out_p: self._out_port.options = [(p, i) for i, p in enumerate(out_p)]
 
@@ -137,63 +138,141 @@ class PresetSelector(Frame):
         if self._list.value: self._config.load_preset(self._list.value); self._config.save_settings(); self._back()
     def _back(self): raise NextScene("Main")
 
+class FilenameDialog(Frame):
+    def __init__(self, screen, on_ok):
+        super(FilenameDialog, self).__init__(screen, 7, 40, has_border=True, title=" SAVE PRESET AS ")
+        self._on_ok = on_ok
+        layout = Layout([1], fill_frame=True)
+        self.add_layout(layout)
+        self._text = Text("Filename:", name="fname")
+        layout.add_widget(self._text)
+        layout.add_widget(Divider())
+        layout2 = Layout([1, 1])
+        self.add_layout(layout2)
+        layout2.add_widget(Button("OK", self._ok), 0)
+        layout2.add_widget(Button("CANCEL", self._back), 1)
+        self.fix()
+    def _ok(self): self._on_ok(self._text.value); self._back()
+    def _back(self): raise NextScene("Editor")
+
 class LayerEditor(Frame):
     def __init__(self, screen, engine, config):
         super(LayerEditor, self).__init__(screen, screen.height, screen.width, has_border=True, title=" LAYER EDITOR ")
         self._engine, self._config, self._layer_idx, self._updating = engine, config, 0, False
+        
         layout = Layout([1, 2], fill_frame=True)
         self.add_layout(layout)
+        
+        # Left column
         layout.add_widget(Label("--- LAYERS ---"), 0)
-        self._layer_list = ListBox(10, self._get_options(), on_change=self._on_layer_change)
+        self._layer_list = ListBox(16, self._get_options(), on_change=self._on_layer_change)
         layout.add_widget(self._layer_list, 0)
         layout.add_widget(Divider(), 0)
         layout.add_widget(Button("SAVE", self._save), 0)
-        layout.add_widget(Button("SAVE AS", self._save_as), 0)
+        layout.add_widget(Button("SAVE AS", self._open_save_as), 0)
         layout.add_widget(Button("EXIT", self._back), 0)
-        layout.add_widget(Label("--- SETTINGS ---"), 1)
-        self._active = CheckBox("Active", label="STATUS:", on_change=self._on_change)
-        self._pgm = DropdownList([(f"{i}: {n}", i) for i, n in enumerate(engine.gm_instruments)], label="PGM   :", on_change=self._on_change)
-        self._vol = Text(label="VOLUME:", on_change=self._on_change)
-        self._trans = Text(label="TRANS :", on_change=self._on_change)
-        self._chord = DropdownList([('Off', 'off'), ('Octave', 'octave'), ('Major', 'major')], label="CHORD :", on_change=self._on_change)
-        self._arp = DropdownList([('Off', 'off'), ('Up', 'up'), ('Down', 'down')], label="ARP   :", on_change=self._on_change)
-        self._curve = DropdownList([('Linear', 'linear'), ('Soft', 'soft'), ('Hard', 'hard')], label="CURVE :", on_change=self._on_change)
-        for w in [self._active, self._pgm, self._vol, self._trans, self._chord, self._arp, self._curve]: layout.add_widget(w, 1)
+        
+        # Right column
+        layout.add_widget(Label("--- PARAMETERS ---"), 1)
+        self._active = CheckBox("Active Status", label="STATUS   :", on_change=self._on_change)
+        self._pgm = DropdownList([(f"{i}: {n}", i) for i, n in enumerate(engine.gm_instruments)], label="PROGRAM  :", on_change=self._on_change)
+        self._vol = Text(label="VOLUME   :", on_change=self._on_change)
+        self._trans = Text(label="TRANSPOSE:", on_change=self._on_change)
+        self._chord = DropdownList([('Off', 'off'), ('Octave', 'octave'), ('Major', 'major'), ('Minor', 'minor'), ('Power', 'power')], label="CHORD    :", on_change=self._on_change)
+        self._arp = DropdownList([('Off', 'off'), ('Up', 'up'), ('Down', 'down'), ('Random', 'random')], label="ARP      :", on_change=self._on_change)
+        self._curve = DropdownList([('Linear', 'linear'), ('Soft', 'soft'), ('Hard', 'hard'), ('Fixed', 'fixed')], label="CURVE    :", on_change=self._on_change)
+        self._hold = DropdownList([('Normal', 'normal'), ('Smart', 'smart')], label="HOLD     :", on_change=self._on_change)
+        self._ensemble = DropdownList([('Off', 'off'), ('Top', 'top'), ('Bottom', 'bottom'), ('Middle', 'middle')], label="ENSEMBLE :", on_change=self._on_change)
+        self._min_n = Text(label="MIN NOTE :", on_change=self._on_change)
+        self._max_n = Text(label="MAX NOTE :", on_change=self._on_change)
+        self._min_v = Text(label="MIN VEL  :", on_change=self._on_change)
+        self._max_v = Text(label="MAX VEL  :", on_change=self._on_change)
+        
+        for w in [self._active, self._pgm, self._vol, self._trans, self._chord, self._arp, self._curve, self._hold, self._ensemble, self._min_n, self._max_n, self._min_v, self._max_v]:
+            layout.add_widget(w, 1)
+            
         layout.add_widget(Divider(), 1)
-        self._help = Label("Ready.")
+        self._help = Label("Select setting for manual guide...")
         layout.add_widget(self._help, 1)
+        
         self.fix()
         self._on_layer_change()
 
     def _get_options(self):
         return [(f"{i+1:02d} {'[ON]' if l['active'] else '[..]'} {l['name'][:15]}", i) for i, l in enumerate(self._engine.layers)]
+
     def _on_layer_change(self):
         self._updating = True
         self._layer_idx = self._layer_list.value or 0
         l = self._engine.layers[self._layer_idx]
-        self._active.value, self._pgm.value, self._vol.value, self._trans.value = l['active'], l['program'], str(l['volume']), str(l['transpose'])
-        self._chord.value, self._arp.value, self._curve.value = l.get('chord_mode', 'off'), l.get('arp_mode', 'off'), l.get('vel_curve', 'linear')
+        self._active.value = l['active']
+        self._pgm.value = l['program']
+        self._vol.value = str(l['volume'])
+        self._trans.value = str(l['transpose'])
+        self._chord.value = l.get('chord_mode', 'off')
+        self._arp.value = l.get('arp_mode', 'off')
+        self._curve.value = l.get('vel_curve', 'linear')
+        self._hold.value = l.get('hold_mode', 'normal')
+        self._ensemble.value = l.get('ensemble_mode', 'off')
+        self._min_n.value = str(l.get('min_note', 0))
+        self._max_n.value = str(l.get('max_note', 127))
+        self._min_v.value = str(l.get('min_vel', 0))
+        self._max_v.value = str(l.get('max_vel', 127))
         self._updating = False
+        self._update_help()
+
     def _on_change(self):
         if self._updating: return
         l = self._engine.layers[self._layer_idx]
-        l['active'], l['program'], l['chord_mode'], l['arp_mode'], l['vel_curve'] = self._active.value, self._pgm.value, self._chord.value, self._arp.value, self._curve.value
+        l['active'], l['program'] = self._active.value, self._pgm.value
+        l['chord_mode'], l['arp_mode'], l['vel_curve'] = self._chord.value, self._arp.value, self._curve.value
+        l['hold_mode'], l['ensemble_mode'] = self._hold.value, self._ensemble.value
         l['name'] = self._engine.gm_instruments[l['program']]
-        try: l['volume'], l['transpose'] = int(self._vol.value), int(self._trans.value)
+        try:
+            l['volume'], l['transpose'] = int(self._vol.value), int(self._trans.value)
+            l['min_note'], l['max_note'] = int(self._min_n.value), int(self._max_n.value)
+            l['min_vel'], l['max_vel'] = int(self._min_v.value), int(self._max_v.value)
         except: pass
         self._layer_list.options = self._get_options()
         if self._engine.running: self._engine.update_all_layer_parameters()
+        self._update_help()
+
+    def _update_help(self):
+        h_data = {
+            "STATUS": "Aktifkan atau matikan layer MIDI ini.",
+            "PROGRAM": f"Instrumen: {self._engine.gm_instruments[self._pgm.value or 0]}",
+            "VOLUME": "Volume (0-127). Atur keseimbangan suara.",
+            "TRANSPOSE": "Transpose semitone (+12 = 1 Oktav).",
+            "CHORD": "Smart Chord: Harmoni otomatis (Octave, Major, dll).",
+            "ARP": "Arpeggiator: Pola nada naik/turun/acak.",
+            "CURVE": "Dinamika velocity: Soft, Hard, atau Fixed.",
+            "HOLD": "Smart Hold: Mencegah suara menumpuk berlebih.",
+            "ENSEMBLE": "Pemisah nada: Top (melodi), Bottom (bass).",
+            "MIN NOTE": "Batas nada terendah agar layer berbunyi.",
+            "MAX NOTE": "Batas nada tertinggi agar layer berbunyi.",
+        }
+        f = self.focussed_widget
+        if f and hasattr(f, 'label') and f.label:
+            lbl = f.label.replace(":", "").strip()
+            self._help.text = f"💡 {h_data.get(lbl, 'Sesuaikan parameter untuk layer ini.')}"
+
     def _save(self):
         if self._engine.current_preset_name not in ["None", "New Preset"]: self._config.save_preset(self._engine.current_preset_name)
-        else: self._save_as()
-    def _save_as(self):
-        def _done(n):
-            if n:
-                if not n.endswith('.cfg'): n += '.cfg'
-                self._config.save_preset(n); self._engine.current_preset_name = n
-        self._scene.add_effect(PopUpDialog(self._screen, "Filename:", ["OK", "CANCEL"], on_close=_done, has_input=True))
+        else: self._open_save_as()
+    
+    def _open_save_as(self): raise NextScene("SaveAs")
     def _back(self): raise NextScene("Main")
-    def reset(self): self._layer_list.options = self._get_options(); self._on_layer_change(); super(LayerEditor, self).reset()
+    
+    def reset(self):
+        self.title = f" 🛠️ EDITOR: {self._engine.current_preset_name} 🛠️ "
+        self._layer_list.options = self._get_options()
+        self._on_layer_change()
+        super(LayerEditor, self).reset()
+
+    def process_event(self, event):
+        res = super(LayerEditor, self).process_event(event)
+        self._update_help()
+        return res
 
 def draw_menu_v3(screen, engine, config):
     if not hasattr(engine, '_original_handle_note_on'):
@@ -205,6 +284,18 @@ def draw_menu_v3(screen, engine, config):
                 for _ in range(5): engine.particles.append({'type': 'firework', 'x': float(x), 'y': float(h-4), 'vx': random.uniform(-1,1), 'vy': random.uniform(-2,-1), 'life': 1.0, 'color': random.randint(1,6)})
             engine._original_handle_note_on(msg)
         engine.handle_note_on = v_on
-    main, presets, editor, visual = MainMenu(screen, engine, config), PresetSelector(screen, engine, config), LayerEditor(screen, engine, config), MIDIVisualizer(screen, engine)
-    scenes = [Scene([main], -1, name="Main"), Scene([presets], -1, name="Presets"), Scene([editor], -1, name="Editor"), Scene([visual], -1, name="Visualizer")]
+
+    main = MainMenu(screen, engine, config)
+    presets = PresetSelector(screen, engine, config)
+    editor = LayerEditor(screen, engine, config)
+    save_as = FilenameDialog(screen, lambda n: (config.save_preset(n), setattr(engine, 'current_preset_name', n)))
+    visual = MIDIVisualizer(screen, engine)
+
+    scenes = [
+        Scene([main], -1, name="Main"),
+        Scene([presets], -1, name="Presets"),
+        Scene([editor], -1, name="Editor"),
+        Scene([save_as], -1, name="SaveAs"),
+        Scene([visual], -1, name="Visualizer")
+    ]
     screen.play(scenes, stop_on_resize=True)
