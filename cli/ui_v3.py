@@ -303,6 +303,7 @@ class LayerEditor(Frame):
         return options
 
     def _on_layer_change(self):
+        self._updating_widgets = True
         self._layer_idx = self._layer_list.value if self._layer_list.value is not None else 0
         layer = self._engine.layers[self._layer_idx]
         
@@ -321,8 +322,13 @@ class LayerEditor(Frame):
         self._max_note.value = str(layer.get('max_note', 127))
         self._min_vel.value = str(layer.get('min_vel', 0))
         self._max_vel.value = str(layer.get('max_vel', 127))
+        self._updating_widgets = False
+        self._update_help()
 
     def _update_layer(self):
+        if getattr(self, '_updating_widgets', False):
+            return
+
         layer = self._engine.layers[self._layer_idx]
         layer['active'] = self._active.value
         layer['channel'] = self._channel.value
