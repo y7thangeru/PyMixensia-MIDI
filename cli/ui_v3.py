@@ -294,6 +294,12 @@ class LayerEditor(Frame):
         self.fix()
         self._on_layer_change()
 
+    def reset(self):
+        """Force a full refresh of the UI when data might have changed externally (e.g. preset load)"""
+        self._layer_list.options = self._get_layer_options()
+        self._layer_list.value = 0
+        self._on_layer_change()
+
     def _get_layer_options(self):
         options = []
         for i, layer in enumerate(self._engine.layers):
@@ -438,15 +444,38 @@ def draw_menu_v3(screen, engine, config):
         engine._original_handle_note_on = engine.handle_note_on
         engine.handle_note_on = visualizer_note_on
 
+    # Create scenes
+    intro_scene = Scene([
+        Stars(screen, screen.width // 2),
+        Print(screen, Rainbow(screen, FigletText("PYMIXENSIA V3", font='slant')), screen.height // 2 - 4, stop_frame=80),
+        Print(screen, StaticRenderer(["POWERED BY ASCIIMATICS"]), screen.height // 2 + 3, colour=Screen.COLOUR_CYAN, stop_frame=80)
+    ], 80, name="Intro")
+
+    main_menu = MainMenu(screen, engine, config)
+    preset_selector = PresetSelector(screen, engine, config)
+    layer_editor = LayerEditor(screen, engine, config)
+    visualizer = MIDIVisualizer(screen, engine)
+
+    class EditorRefresher(Effect):
+        def __init__(self, screen, editor, engine):
+            super(EditorRefresher, self).__init__(screen)
+            self._editor = editor
+            self._engine = engine
+        def _update(self, frame_no):
+            if frame_no == 0:
+                self._editor.title = f" 🛠️  EDITOR: {self._engine.current_preset_name} 🛠️ "
+                self._editor.reset()
+        @property
+        def stop_frame(self): return 1
+        def reset(self): pass
+        def process_event(self, event): return event
+
     scenes = [
-        Scene([
-            Stars(screen, screen.width // 2),
-            Print(screen, Rainbow(screen, FigletText("PYMIXENSIA V3", font='slant')), screen.height // 2 - 4, stop_frame=80),
-            Print(screen, StaticRenderer(["POWERED BY ASCIIMATICS"]), screen.height // 2 + 3, colour=Screen.COLOUR_CYAN, stop_frame=80)
-        ], 80, name="Intro"),
-        Scene([MainMenu(screen, engine, config)], -1, name="Main"),
-        Scene([PresetSelector(screen, engine, config)], -1, name="Presets"),
-        Scene([LayerEditor(screen, engine, config)], -1, name="Editor"),
-        Scene([MIDIVisualizer(screen, engine)], -1, name="Visualizer")
+        intro_scene,
+        Scene([main_menu], -1, name="Main"),
+        Scene([preset_selector], -1, name="Presets"),
+        Scene([EditorRefresher(screen, layer_editor, engine), layer_editor], -1, name="Editor"),
+        Scene([visualizer], -1, name="Visualizer")
     ]
-    screen.play(scenes, stop_on_resize=True)
+    
+    screen.play(scenes, stop_on_resize=True, start_scene=scenes[0])
