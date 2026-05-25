@@ -153,6 +153,15 @@ class MixensiaEngine:
             self.add_notification(f"Engine STARTED on {in_name}")
             return True
         except Exception as e:
+            if self.inport: 
+                try: self.inport.close()
+                except: pass
+                self.inport = None
+            if self.outport:
+                try: self.outport.close()
+                except: pass
+                self.outport = None
+            self.running = False
             self.add_notification(f"Error starting: {str(e)}")
             return False
 
