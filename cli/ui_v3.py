@@ -74,7 +74,7 @@ class MainMenu(Frame):
         layout.add_widget(Divider(), 1)
         self._master_t = Text("Transpose:", readonly=True)
         layout.add_widget(self._master_t, 1)
-        layout.add_widget(Button("PANIC (P)", self._engine.panic), 1)
+        layout.add_widget(Button("PANIC (P)", self._panic), 1)
         layout.add_widget(Label("--- PORTS ---"), 2)
         self._in_port = DropdownList([("No Ports", 0)], label="IN :")
         self._out_port = DropdownList([("No Ports", 0)], label="OUT:")
@@ -86,38 +86,91 @@ class MainMenu(Frame):
         layout.add_widget(Button("QUIT (Q)", self._quit), 2)
         self.fix()
         self._sync()
+
+    def _panic(self):
+        self._engine.panic()
+
     def _sync(self):
         self._status.text = "RUNNING" if self._engine.running else "STOPPED"
         self._preset.text = self._engine.current_preset_name
         self._splits.value = not self._engine.disable_splits
         self._sustain.value = self._engine.sustain_enabled
         self._master_t.value = f"{self._engine.master_transpose:+d}"
-        in_p, out_p = self._engine.available_in_ports, self._engine.available_out_ports
+        in_p = self._engine.available_in_ports
+        out_p = self._engine.available_out_ports
         if in_p: self._in_port.options = [(p, i) for i, p in enumerate(in_p)]
         if out_p: self._out_port.options = [(p, i) for i, p in enumerate(out_p)]
+
     def _update_settings(self):
         self._engine.disable_splits = not self._splits.value
         self._engine.sustain_enabled = self._sustain.value
         self._config.save_settings()
+
     def _toggle_engine(self):
         if self._engine.running: self._engine.stop()
         else:
             in_p, out_p = self._engine.available_in_ports, self._engine.available_out_ports
-            if in_p and out_p: self._engine.start(in_p[self._in_port.value or 0], out_p[self._out_port.value or 0])
+            if in_p and out_p:
+                in_idx = self._in_port.value if self._in_port.value is not None else 0
+                out_idx = self._out_port.value if self._out_port.value is not None else 0
+                self._engine.start(in_p[in_idx], out_p[out_idx])
         self._sync()
+
     def _open_presets(self): raise NextScene("Presets")
     def _open_editor(self): raise NextScene("Editor")
     def _open_visual(self): raise NextScene("Visualizer")
+    def _open_help(self): raise NextScene("Help")
+    def _open_monitor(self): raise NextScene("Monitor")
     def _quit(self): self._config.save_settings(); self._engine.stop(); raise StopApplication("Quit")
+
     def process_event(self, event):
         if hasattr(event, 'key_code'):
             if event.key_code == ord('s'): self._toggle_engine()
             elif event.key_code == ord('l'): self._open_presets()
-            elif event.key_code == ord('p'): self._engine.panic()
+            elif event.key_code == ord('p'): self._panic()
+            elif event.key_code == ord('q'): self._quit()
+            elif event.key_code == ord('1'): self.switch_focus(self._layouts[2], 0, 0)
+            elif event.key_code == ord('2'): self.switch_focus(self._layouts[2], 0, 1)
+            elif event.key_code == ord('m'): self._open_monitor()
+            elif event.key_code == Screen.KEY_F1: self._open_help()
             elif event.key_code == Screen.KEY_F2: self._open_editor()
             elif event.key_code == Screen.KEY_F4: self._open_visual()
         self._sync()
         return super(MainMenu, self).process_event(event)
+
+class HelpDialog(Frame):
+    def __init__(self, screen):
+        super(HelpDialog, self).__init__(screen, 12, 50, has_border=True, title=" 📘 SHORTCUT LIST 📘 ")
+        layout = Layout([1], fill_frame=True)
+        self.add_layout(layout)
+        helps = [
+            "[S] Start/Stop Engine", "[L] Load Preset List", "[P] Panic (Kill All Notes)",
+            "[1] Select Input Port", "[2] Select Output Port", "[M] MIDI Monitor",
+            "[[] Transpose Down", "[]] Transpose Up", "[F1] This Help",
+            "[F2] Preset Editor", "[F4] Visualizer", "[Q] Quit Application"
+        ]
+        for h in helps: layout.add_widget(Label(h))
+        layout.add_widget(Divider())
+        layout.add_widget(Button("CLOSE", lambda: raise NextScene("Main")))
+        self.fix()
+
+class MIDIMonitor(Frame):
+    def __init__(self, screen, engine):
+        super(MIDIMonitor, self).__init__(screen, 15, 60, has_border=True, title=" 🔍 MIDI MONITOR 🔍 ")
+        self._engine = engine
+        layout = Layout([1], fill_frame=True)
+        self.add_layout(layout)
+        self._log = ListBox(10, [("Waiting for MIDI...", 0)])
+        layout.add_widget(self._log)
+        layout.add_widget(Divider())
+        layout.add_widget(Button("BACK", lambda: raise NextScene("Main")))
+        self.fix()
+    def _update(self, frame_no):
+        super(MIDIMonitor, self)._update(frame_no)
+        # Snapshot of midi log
+        messages = list(self._engine.midi_log)[-10:]
+        if messages:
+            self._log.options = [(str(m), i) for i, m in enumerate(messages)]
 
 class PresetSelector(Frame):
     def __init__(self, screen, engine, config):
@@ -291,5 +344,16 @@ def draw_menu_v3(screen, engine, config):
     editor = LayerEditor(screen, engine, config)
     save_as = FilenameDialog(screen, lambda n: (config.save_preset(n), setattr(engine, 'current_preset_name', n)))
     visual = MIDIVisualizer(screen, engine)
-    scenes = [Scene([main], -1, name="Main"), Scene([presets], -1, name="Presets"), Scene([editor], -1, name="Editor"), Scene([save_as], -1, name="SaveAs"), Scene([visual], -1, name="Visualizer")]
+    help_dialog = HelpDialog(screen)
+    monitor = MIDIMonitor(screen, engine)
+    
+    scenes = [
+        Scene([main], -1, name="Main"),
+        Scene([presets], -1, name="Presets"),
+        Scene([editor], -1, name="Editor"),
+        Scene([save_as], -1, name="SaveAs"),
+        Scene([visual], -1, name="Visualizer"),
+        Scene([help_dialog], -1, name="Help"),
+        Scene([monitor], -1, name="Monitor")
+    ]
     screen.play(scenes, stop_on_resize=True)
