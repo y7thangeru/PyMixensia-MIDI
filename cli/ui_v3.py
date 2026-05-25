@@ -340,10 +340,18 @@ class LayerEditor(Frame):
         if self._engine.running: self._engine.update_all_layer_parameters()
 
     def _update_help(self):
+        # Helper to get program display name safely
+        pgm_val = self._program.value
+        pgm_name = "N/A"
+        if pgm_val and pgm_val.isdigit():
+            pgm_int = int(pgm_val)
+            if 0 <= pgm_int <= 127:
+                pgm_name = self._engine.gm_instruments[pgm_int]
+
         help_data = {
             "STATUS": ("Status Aktif layer ini.", "CONTOH: OFF untuk mematikan layer sementara."),
             "CHANNEL": ("Saluran output MIDI (1-16).", "CONTOH: Ch 1 untuk Piano, Ch 2 untuk Strings."),
-            "PROGRAM": ("Jenis suara instrumen (0-127).", f"HASIL: {self._engine.gm_instruments[int(self._program.value)] if self._program.value.isdigit() and 0<=int(self._program.value)<=127 else 'N/A'}"),
+            "PROGRAM": ("Jenis suara instrumen (0-127).", f"HASIL: {pgm_name}"),
             "VOLUME": ("Kekuatan suara (0-127).", "TIPS: Layer Strings biasanya lebih pelan (Vol: 60)."),
             "TRANSPOSE": ("Geser nada per semitone.", "TIPS: +12 untuk naik 1 oktav."),
             "CHORD": ("Harmonisasi otomatis nada tunggal.", "POWER: Menambah nada kuinta dan oktav."),
