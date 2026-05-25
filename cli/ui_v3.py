@@ -195,6 +195,10 @@ class LayerEditor(Frame):
         self._help = Label("Select setting for manual guide...")
         layout.add_widget(self._help, 1)
         
+        # Shortcut Footer
+        layout.add_widget(Divider(), 1)
+        layout.add_widget(Label("[F2] Close | [S] Quick Save | [A] Save As | [TAB] Navigate"), 1)
+        
         self.fix()
         self._on_layer_change()
 
@@ -340,6 +344,11 @@ class LayerEditor(Frame):
         super(LayerEditor, self).reset()
 
     def process_event(self, event):
+        if hasattr(event, 'key_code'):
+            if event.key_code == Screen.KEY_F2: self._back()
+            elif event.key_code == ord('s'): self._save()
+            elif event.key_code == ord('a'): self._open_save_as()
+        
         res = super(LayerEditor, self).process_event(event)
         self._update_help()
         return res
