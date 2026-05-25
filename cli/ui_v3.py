@@ -8,7 +8,7 @@ from asciimatics.renderers import FigletText, Rainbow, StaticRenderer
 from asciimatics.scene import Scene
 from asciimatics.screen import Screen
 from asciimatics.exceptions import ResizeScreenError, StopApplication, NextScene
-from asciimatics.widgets import Frame, Layout, Label, Divider, ListBox, Text, Button, CheckBox, DropDownList
+from asciimatics.widgets import Frame, Layout, Label, Divider, ListBox, Text, Button, CheckBox, DropdownList
 
 class MIDIVisualizer(Effect):
     """
@@ -111,8 +111,8 @@ class MainMenu(Frame):
         
         # Right side: Port Selection
         layout.add_widget(Label("MIDI PORTS"), 1)
-        self._in_port = DropDownList([("No Ports", 0)], label="IN :")
-        self._out_port = DropDownList([("No Ports", 0)], label="OUT:")
+        self._in_port = DropdownList([("No Ports", 0)], label="IN :")
+        self._out_port = DropdownList([("No Ports", 0)], label="OUT:")
         layout.add_widget(self._in_port, 1)
         layout.add_widget(self._out_port, 1)
         
