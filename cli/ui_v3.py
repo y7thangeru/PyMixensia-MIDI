@@ -177,7 +177,7 @@ class MIDIMonitor(Frame):
     def _update(self, frame_no):
         super(MIDIMonitor, self)._update(frame_no)
         # Snapshot of midi log
-        messages = list(self._engine.midi_log)[-10:]
+        messages = list(self._engine.midi_monitor)[-10:]
         if messages:
             self._log.options = [(str(m), i) for i, m in enumerate(messages)]
 
