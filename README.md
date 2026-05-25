@@ -1,125 +1,88 @@
-# PyMixensia-MIDI V2 (Advanced CLI Edition)
+# PyMixensia-MIDI: Evolusi Engine MIDI CLI (V1 - V3)
 
-PyMixensia-MIDI adalah engine MIDI berbasis Python yang dirancang untuk pengolahan MIDI real-time tingkat lanjut. Versi V2 ini menghadirkan arsitektur **MVC (Model-View-Controller)** yang stabil, latensi sangat rendah, fitur musikalitas cerdas, dan visualisasi performa yang memukau langsung di dalam terminal.
+PyMixensia-MIDI adalah engine MIDI berbasis Python yang dirancang untuk pengolahan MIDI real-time tingkat lanjut. Proyek ini berevolusi dari skrip sederhana menjadi workstation MIDI berbasis terminal yang sangat powerful.
 
 ---
 
-## 💎 PyMixensia-MIDI V3 (The Asciimatics Edition) - NEW!
+## 💎 PyMixensia-MIDI V3: The Asciimatics Edition (LATEST)
 
-Versi V3 memperkenalkan perombakan total pada antarmuka visual menggunakan library **Asciimatics**.
+Versi V3 adalah lompatan besar dalam sisi visual dan stabilitas UI, menggantikan `curses` standar dengan library **Asciimatics**.
 
-### Apa yang baru di V3?
-- **Cinematic Intro**: Intro animasi megah dengan efek "Rainbow Figlet" saat aplikasi dijalankan.
-- **Modern UI Widgets**: Menggunakan sistem Frame, Layout, dan Widget (Dropdown, Checkbox) yang lebih interaktif dan bersih.
-- **Advanced Visualizer (F4)**:
-    - **Starfield Background**: Latar belakang bintang yang bergerak dinamis.
-    - **Matrix Rain**: Gabungan efek Matrix dengan visualisasi nada MIDI.
-    - **3D Falling Blocks**: Visualisasi nada MIDI yang lebih halus dan berkinerja tinggi.
-- **Improved Performance**: Engine animasi berbasis frame-rate yang stabil.
+### ✨ Fitur Unggulan V3
+- **Modern UI Framework**: Menggunakan sistem widget (Frame, Layout, Dropdown, Checkbox) yang jauh lebih stabil dan interaktif.
+- **Dynamic Manual Guide**: Editor F2 kini dilengkapi dengan panel bantuan "Live". Setiap Anda menyorot parameter, penjelasan lengkap mengenai fungsi dan setiap opsinya akan muncul secara otomatis.
+- **Hybrid Visualizer (F4)**: Animasi yang lebih halus dengan dukungan 5 mode asli (Fireworks, Stars, Ripples, Falling, Tetris) ditambah **Demo Mode [D]** untuk melihat animasi tanpa perangkat MIDI.
+- **Robust Engine**: Penanganan error tingkat hardware (ALSA resource busy) yang mencegah terminal *hang* atau membeku.
 
-### Cara Menjalankan V3:
-Gunakan script launch baru:
+### 🛠️ Problem & Solusi di V3
+Selama pengembangan V3, kami menghadapi beberapa tantangan teknis:
+1.  **IndexError: No live widgets**: Terjadi karena sistem layout mencoba memberi fokus pada label statis. **Fix**: Re-arsitektur layout menjadi sistem kolom yang stabil dan penempatan jangkar fokus yang tepat.
+2.  **Circular Update Bug**: Saat berpindah layer, data lama menimpa data baru. **Fix**: Implementasi `_updating` flag untuk memutus loop event UI.
+3.  **ALSA Hang**: Terminal membeku saat MIDI port sibuk. **Fix**: Implementasi *clean-up* otomatis dan *exception handling* pada level engine port opening.
+
+### 🚀 Menjalankan V3
 ```bash
 ./run_v3.sh
 ```
 
 ---
 
-## 🚀 Fitur Utama & Progress V2 (Legacy)
+## 🚀 PyMixensia-MIDI V2: Advanced CLI Edition (Stable Legacy)
 
-### 1. Arsitektur & Keandalan (MVC)
-- **MVC Refactoring**: Pemisahan total antara **Engine Inti** (`core/`) dan **Antarmuka Pengguna** (`cli/`) untuk memastikan stabilitas dan performa tinggi.
-- **Auto-Connect MIDI**: Aplikasi secara otomatis mendeteksi dan menyambungkan perangkat MIDI favorit Anda (`5704PIA-DK`) saat startup.
-- **Auto-Reconnect (QoL)**: Jika kabel USB terputus di tengah sesi, engine akan otomatis menyambung kembali saat kabel dicolokkan tanpa perlu restart aplikasi.
-- **Settings Memory**: Menyimpan otomatis seluruh setelan global (Port, Transpose, dll) ke `settings.json`.
+V2 memperkenalkan arsitektur **MVC (Model-View-Controller)** dan fitur musikalitas yang sangat lengkap.
 
-### 2. Fitur Musikalitas & Performa
-- **Smart Chord**: Menghasilkan harmoni otomatis (Octave, Mayor, Minor, Power Chord) secara real-time dari satu nada.
-- **Arpeggiator**: Pola nada Up, Down, dan Random untuk tekstur suara ritmis yang dinamis.
-- **Velocity Dynamics**: Kurva sensitivitas (Soft, Hard, Fixed) untuk kontrol ekspresi yang presisi.
-- **Ensemble Modes**: Pemisah suara cerdas (Top, Bottom, Middle) untuk memisahkan melodi, bass, dan iringan secara otomatis.
-- **Global Sustain & Transpose**: Kontrol cepat untuk mematikan pedal sustain atau menggeser nada dasar seluruh lagu.
+### Fitur Utama V2
+- **Arsitektur Terpisah**: Pemisahan total antara `core/engine.py` (logika) dan `cli/ui.py` (tampilan).
+- **Smart Musicality**:
+    - **Smart Chord**: Harmoni otomatis (Octave, Mayor, Minor, Power Chord).
+    - **Ensemble Modes**: Pemisah suara otomatis (Top/Bottom/Middle) untuk melodi dan bass.
+    - **Velocity Dynamics**: Kurva respon sentuhan (Soft, Hard, Fixed).
+- **Preset Management**: Sistem load/save `.cfg` yang sangat cepat dengan dukungan 16 layer suara.
+- **Auto-Reconnect**: Deteksi otomatis kabel MIDI yang terputus di tengah sesi.
 
-### 3. Visualisasi & Monitoring
-- **Fullscreen ASCII Visualizer (F4)**: 5 mode animasi "Colossal" yang merespon nada piano:
-    *   **Ultra Fireworks**: Ledakan kembang api blok solid yang megah.
-    *   **Giant Cross Stars**: Bintang raksasa 3x3 dengan pendaran cahaya.
-    *   **Rainbow Ripples**: Riak air berwarna gradasi pelangi yang dinamis.
-    *   **Heavy Blocks**: Balok MIDI jatuh yang masif dan solid.
-    *   **Tetris Colossal**: Jatuhan balok raksasa ala retro.
-- **Enhanced MIDI Monitor (M)**: Monitor lebar (60 kolom) dengan format pesan yang mudah dibaca (Channel, Note, Velocity, CC).
+### 📘 Buku Manual: Parameter Preset Editor
+| Parameter | Deskripsi |
+| :--- | :--- |
+| **STATUS** | Aktifkan/matikan layer (ON/OFF). |
+| **CHANNEL** | Saluran MIDI output (1-16). |
+| **PROGRAM** | Pilih suara instrumen GM (0-127). |
+| **CHORD** | Mode harmoni: Single, Octave, Major, Minor, Power. |
+| **ARP** | Arpeggiator: Up, Down, Random. |
+| **ENSEMBLE** | Splitting cerdas: Top (Melodi), Bottom (Bass). |
+| **RANGE** | Batas wilayah nada (Min Note - Max Note). |
+
+---
+
+## 📜 PyMixensia-MIDI V1: The Genesis
+
+Versi awal yang membuktikan bahwa Python mampu menangani MIDI dengan latensi sangat rendah langsung di CLI.
+
+### Karakteristik V1
+- **Monolithic Script**: Seluruh kode berada dalam satu file `mixensia_engine.py`.
+- **Dasar Visual**: Menggunakan karakter ASCII sederhana untuk memantau aktivitas nada.
+- **Fokus Utama**: Latensi rendah dan kompatibilitas dengan VST eksternal.
+- **Legacy**: Menjadi fondasi algoritma pemrosesan MIDI yang digunakan hingga V3.
 
 ---
 
 ## 🎹 Featured Song Presets
-
-Tersedia preset yang dirancang khusus untuk lagu populer, menggunakan seluruh kekuatan fitur V2:
-
-### 🎵 Jadi Kekasihku Saja - Keisya Levronka
-*   **JadiKekasihkuSaja_Keisya**: Ballad pop manis dengan piano ekspresif dan strings megah.
-*   **JadiKekasihkuSaja_Cheerful**: Versi piano klasik yang terang, ceria, dan bertenaga.
-*   **JadiKekasihkuSaja_JazzPop**: Nuansa Jazz-Pop "centil" dengan arpeggio vibraphone dan slap bass.
-
-### 🎵 City of Stars - La La Land
-*   **CityOfStars_LaLaLand**: Jazz malam yang intim dengan siulan ikonik dan night strings.
-*   **CityOfStars_GrandClassical**: Piano konser yang megah dan berbobot dengan resonansi dalam.
-*   **CityOfStars_CityPop**: Transformasi retro 80-an dengan synth brass dan funky groove.
+Preset yang dirancang khusus menggunakan seluruh kekuatan engine PyMixensia:
+- **Jadi Kekasihku Saja (Keisya)**: Piano ekspresif + Megah Strings.
+- **City of Stars (La La Land)**: Jazz intim dengan simulasi siulan dan night strings.
 
 ---
 
-## 📘 Buku Manual: Parameter Preset Editor (F2)
-
-Gunakan tabel ini sebagai panduan saat meracik suara di dalam Editor:
-
-| Parameter | Deskripsi & Contoh Penggunaan |
-| :--- | :--- |
-| **Active Status** | `ON/OFF`. Menentukan apakah layer berbunyi. Gunakan layering untuk suara Hybrid (Piano+Strings). |
-| **MIDI Channel** | `1-16`. Saluran output data MIDI. Harus sama dengan channel di VST/Synthesizer Anda. |
-| **Program Change** | Memilih jenis suara (0-127). Disertai nama instrumen GM otomatis (0: Grand Piano, 40: Violin). |
-| **Volume** | `0-127`. Mengatur keseimbangan (mix) antar layer suara. |
-| **Transpose** | Menggeser nada per semitone. Set `+12` untuk menaikkan suara layer 1 oktav. |
-| **Smart Chord** | **Off**: Nada tunggal. **Octave**: Tambah nada 1 oktav di atas. **Major/Minor**: Chord otomatis. |
-| **Arpeggiator** | Memainkan nada yang ditahan secara bergantian (Up/Down/Random). Bagus untuk suara Pad. |
-| **Velocity Curve** | **Soft**: Respon ringan (Ballad). **Hard**: Respon berat (Rock). **Fixed**: Velocity dikunci di 110. |
-| **Hold Mode** | `Normal`: Sustain standar. `Smart`: Mencegah nota "menumpuk" berlebih (Hemat CPU). [LENGKAP] |
-| **Ensemble Mode** | `Top`: Ambil nada tertinggi. `Bottom`: Ambil nada terendah. Cocok untuk memisahkan melodi. [LENGKAP] |
-| **Note Range** | `Min/Max Note`. Batas area keyboard. Set `Min:60` agar layer hanya bunyi dari nada C3 ke atas. [LENGKAP] |
-| **Vel Range** | `Min/Max Velocity`. Layer hanya bunyi jika ditekan dengan kekerasan tertentu. [LENGKAP] |
+## ⌨️ Daftar Shortcut Global (V2 & V3)
+- **[F1]**: Bantuan Lengkap / Shortcut List.
+- **[F2]**: Buka/Tutup Preset Editor.
+- **[F4]**: Buka/Tutup Visualizer Animasi.
+- **[S]**: Start/Stop Engine MIDI.
+- **[L]**: Memuat Daftar Preset.
+- **[P]**: Panic Button (Matikan semua nada).
+- **[M]**: MIDI Monitor (Log data real-time).
+- **[D]**: Demo Mode (Hanya di Visualizer F4).
+- **[[] / []]**: Master Transpose (Naik/Turun nada dasar).
+- **[Q]**: Keluar dari Aplikasi.
 
 ---
-
-## ⚙️ Panduan Teknis & Struktur Kode
-
-### Analisis Arsitektur
-1.  **`MixensiaEngine` (core/engine.py)**: Jantung aplikasi. Menangani input MIDI, threading, logika manipulasi nota (Chord/Arp), dan status visualizer.
-2.  **`ConfigManager` (core/config.py)**: Mengelola sinkronisasi antara memori RAM dan Disk (Preset `.cfg` & `settings.json`).
-3.  **`draw_menu` (cli/ui.py)**: Antarmuka berbasis `curses` dengan optimasi `erase()` untuk anti-flickering dan tutorial kontekstual.
-
-### Struktur Proyek
-```text
-PyMixensia-MIDI/
-├── core/                   # Logika Inti (The Model)
-├── cli/                    # Antarmuka Pengguna (The View/Controller)
-├── presets/                # Database konfigurasi suara (.cfg)
-├── mixensia_engine_extended.py # Entry Point utama
-├── run_extended.sh         # Launch script (Versi Lengkap)
-├── mixensia_engine.py      # Script standar (Versi Ringan)
-└── settings.json           # Penyimpanan state global otomatis
-```
-
----
-
-## ⌨️ Daftar Shortcut Keyboard Lengkap
-
-### Navigasi & Visual
-- **[F1]**: Bantuan Lengkap | **[F2]**: Editor (Mulai Tab 1) | **[F3]**: Preset Baru | **[F4]**: Visualizer.
-- **[S]**: Start/Stop Engine (Menu Utama) atau Smart Save (Editor).
-- **[A]**: Save As (di Editor) | **[L]**: Daftar Preset | **[Q]**: Simpan & Keluar.
-- **[UP / DN]**: Ganti Preset Cepat | **[LEFT / RIGHT]**: Ganti Mode Visualizer.
-
-### Kontrol Performa
-- **[TAB]**: Pilih Layer Aktif | **[ + ] / [ - ]**: Volume Layer | **[ [ ] / [ ] ]**: Transpose Global.
-- **[O]**: Toggle Sustain | **[F]**: Toggle Fixed Velocity | **[M]**: MIDI Monitor.
-
----
-*PyMixensia-MIDI V2 - Kecepatan CLI, Kekuatan Profesional, Visual Memukau.*
+*PyMixensia-MIDI - Dari skrip sederhana hingga workstation MIDI CLI profesional.*
