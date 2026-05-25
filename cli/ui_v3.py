@@ -240,39 +240,55 @@ class PresetSelector(Frame):
 
 class LayerEditor(Frame):
     def __init__(self, screen, engine, config):
-        super(LayerEditor, self).__init__(screen, screen.height, screen.width, has_border=True, title=" 🛠️ LAYER EDITOR 🛠️ ")
+        super(LayerEditor, self).__init__(screen, screen.height, screen.width, has_border=True, title=" 🛠️  LAYER EDITOR V3  🛠️ ")
         self._engine = engine
         self._config = config
         self._layer_idx = 0
         
-        layout = Layout([1, 3, 1], fill_frame=True)
+        # Main layout: Layer Selection (Left), Parameters (Middle), Manual Guide (Right)
+        layout = Layout([1, 2, 2], fill_frame=True)
         self.add_layout(layout)
         
-        layout.add_widget(Label("SELECT LAYER"), 0)
+        # Col 0: Layer Selection
+        layout.add_widget(Label("--- SELECT LAYER ---"), 0)
         self._layer_list = ListBox(16, [(f"Layer {i+1}", i) for i in range(16)], on_change=self._on_layer_change)
         layout.add_widget(self._layer_list, 0)
+        layout.add_widget(Divider(), 0)
+        layout.add_widget(Button("SAVE PRESET", self._save), 0)
+        layout.add_widget(Button("BACK TO MENU", self._back), 0)
         
-        self._active = CheckBox("Active Status", label="STATUS  :", on_change=self._update_layer)
-        self._channel = Text(label="CHANNEL :", on_change=self._update_layer)
-        self._program = Text(label="PROGRAM :", on_change=self._update_layer)
-        self._volume = Text(label="VOLUME  :", on_change=self._update_layer)
+        # Col 1: Parameters (The full list from V2)
+        layout.add_widget(Label("--- PARAMETERS ---"), 1)
+        self._active = CheckBox("Active Status", label="STATUS   :", on_change=self._update_layer)
+        self._channel = DropdownList([(str(i+1), i) for i in range(16)], label="CHANNEL  :", on_change=self._update_layer)
+        self._program = Text(label="PROGRAM  :", on_change=self._update_layer)
+        self._volume = Text(label="VOLUME   :", on_change=self._update_layer)
         self._transpose = Text(label="TRANSPOSE:", on_change=self._update_layer)
         
-        layout.add_widget(self._active, 1)
-        layout.add_widget(self._channel, 1)
-        layout.add_widget(self._program, 1)
-        layout.add_widget(self._volume, 1)
-        layout.add_widget(self._transpose, 1)
-        layout.add_widget(Divider(), 1)
+        self._chord = DropdownList([('Off', 'off'), ('Octave', 'octave'), ('Major', 'major'), ('Minor', 'minor'), ('Power', 'power')], label="CHORD    :", on_change=self._update_layer)
+        self._arp = DropdownList([('Off', 'off'), ('Up', 'up'), ('Down', 'down'), ('Random', 'random')], label="ARP      :", on_change=self._update_layer)
+        self._curve = DropdownList([('Linear', 'linear'), ('Soft', 'soft'), ('Hard', 'hard'), ('Fixed', 'fixed')], label="CURVE    :", on_change=self._update_layer)
+        self._hold = DropdownList([('Normal', 'normal'), ('Smart', 'smart')], label="HOLD     :", on_change=self._update_layer)
+        self._ensemble = DropdownList([('Off', 'off'), ('Top', 'top'), ('Bottom', 'bottom'), ('Middle', 'middle')], label="ENSEMBLE :", on_change=self._update_layer)
         
-        layout.add_widget(Label("HELP & INFO"), 2)
-        self._info = Label("Use [TAB] to navigate.")
-        layout.add_widget(self._info, 2)
+        self._min_note = Text(label="MIN NOTE :", on_change=self._update_layer)
+        self._max_note = Text(label="MAX NOTE :", on_change=self._update_layer)
+        self._min_vel = Text(label="MIN VEL  :", on_change=self._update_layer)
+        self._max_vel = Text(label="MAX VEL  :", on_change=self._update_layer)
+
+        for w in [self._active, self._channel, self._program, self._volume, self._transpose, self._chord, self._arp, self._curve, self._hold, self._ensemble, self._min_note, self._max_note, self._min_vel, self._max_vel]:
+            layout.add_widget(w, 1)
         
-        layout2 = Layout([1, 1, 1, 1])
-        self.add_layout(layout2)
-        layout2.add_widget(Button("SAVE PRESET", self._save), 0)
-        layout2.add_widget(Button("BACK TO MENU", self._back), 3)
+        # Col 2: Manual Guide (Dynamic)
+        layout.add_widget(Label("--- BUKU MANUAL / HELP ---"), 2)
+        self._help_title = Label("Pilih parameter di kiri...")
+        self._help_desc = Label("")
+        self._help_example = Label("")
+        layout.add_widget(self._help_title, 2)
+        layout.add_widget(Divider(), 2)
+        layout.add_widget(self._help_desc, 2)
+        layout.add_widget(Label(""), 2) # Spacer
+        layout.add_widget(self._help_example, 2)
         
         self.fix()
         self._on_layer_change()
@@ -280,26 +296,83 @@ class LayerEditor(Frame):
     def _on_layer_change(self):
         self._layer_idx = self._layer_list.value if self._layer_list.value is not None else 0
         layer = self._engine.layers[self._layer_idx]
+        
+        # Sync widgets with layer data
         self._active.value = layer['active']
-        self._channel.value = str(layer['channel'] + 1)
+        self._channel.value = layer['channel']
         self._program.value = str(layer['program'])
         self._volume.value = str(layer['volume'])
         self._transpose.value = str(layer['transpose'])
+        self._chord.value = layer.get('chord_mode', 'off')
+        self._arp.value = layer.get('arp_mode', 'off')
+        self._curve.value = layer.get('vel_curve', 'linear')
+        self._hold.value = layer.get('hold_mode', 'normal')
+        self._ensemble.value = layer.get('ensemble_mode', 'off')
+        self._min_note.value = str(layer.get('min_note', 0))
+        self._max_note.value = str(layer.get('max_note', 127))
+        self._min_vel.value = str(layer.get('min_vel', 0))
+        self._max_vel.value = str(layer.get('max_vel', 127))
 
     def _update_layer(self):
         layer = self._engine.layers[self._layer_idx]
         layer['active'] = self._active.value
+        layer['channel'] = self._channel.value
+        layer['chord_mode'] = self._chord.value
+        layer['arp_mode'] = self._arp.value
+        layer['vel_curve'] = self._curve.value
+        layer['hold_mode'] = self._hold.value
+        layer['ensemble_mode'] = self._ensemble.value
+        
         try:
-            layer['channel'] = int(self._channel.value) - 1
             layer['program'] = int(self._program.value)
             layer['volume'] = int(self._volume.value)
             layer['transpose'] = int(self._transpose.value)
+            layer['min_note'] = int(self._min_note.value)
+            layer['max_note'] = int(self._max_note.value)
+            layer['min_vel'] = int(self._min_vel.value)
+            layer['max_vel'] = int(self._max_vel.value)
         except: pass
+
+        # Update dynamic help based on focused widget
+        self._update_help()
+        
         if self._engine.running: self._engine.update_all_layer_parameters()
+
+    def _update_help(self):
+        help_data = {
+            "STATUS": ("Status Aktif layer ini.", "CONTOH: OFF untuk mematikan layer sementara."),
+            "CHANNEL": ("Saluran output MIDI (1-16).", "CONTOH: Ch 1 untuk Piano, Ch 2 untuk Strings."),
+            "PROGRAM": ("Jenis suara instrumen (0-127).", f"HASIL: {self._engine.gm_instruments[int(self._program.value)] if self._program.value.isdigit() and 0<=int(self._program.value)<=127 else 'N/A'}"),
+            "VOLUME": ("Kekuatan suara (0-127).", "TIPS: Layer Strings biasanya lebih pelan (Vol: 60)."),
+            "TRANSPOSE": ("Geser nada per semitone.", "TIPS: +12 untuk naik 1 oktav."),
+            "CHORD": ("Harmonisasi otomatis nada tunggal.", "POWER: Menambah nada kuinta dan oktav."),
+            "ARP": ("Memainkan nada secara berurutan.", "UP: Nada rendah ke tinggi secara ritmis."),
+            "CURVE": ("Respon dinamika sentuhan piano.", "SOFT: Suara lebih lembut meski ditekan keras."),
+            "HOLD": ("Logika sustain/penahanan nada.", "SMART: Hemat CPU dengan membatasi nota tumpuk."),
+            "ENSEMBLE": ("Pemisah suara cerdas berdasarkan nada.", "TOP: Hanya nada tertinggi yang bunyi (Melodi)."),
+            "MIN NOTE": ("Batas nada terendah (0-127).", "TIPS: 60 adalah nada C3 tengah."),
+            "MAX NOTE": ("Batas nada tertinggi (0-127).", "HASIL: Area keyboard terbagi secara visual."),
+            "MIN VEL": ("Sensitivitas tekanan minimal layer.", "TIPS: Layer Strings hanya bunyi saat ditekan kuat."),
+            "MAX VEL": ("Sensitivitas tekanan maksimal layer.", "HASIL: Layering dinamis berdasarkan ekspresi."),
+        }
+        
+        # Determine which widget is focused and update help
+        focused = self.focused_widget
+        if hasattr(focused, 'label'):
+            label = focused.label.replace(":", "").strip()
+            if label in help_data:
+                self._help_title.text = f"⚙️ PARAMETER: {label}"
+                self._help_desc.text = help_data[label][0]
+                self._help_example.text = help_data[label][1]
 
     def _save(self):
         if self._engine.current_preset_name != "None": self._config.save_preset(self._engine.current_preset_name)
     def _back(self): raise NextScene("Main")
+    
+    def process_event(self, event):
+        res = super(LayerEditor, self).process_event(event)
+        self._update_help() # Always update help on interactions
+        return res
 
 def draw_menu_v3(screen, engine, config):
     # Restore V2 Visualizer particle spawning logic
