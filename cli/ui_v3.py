@@ -151,8 +151,9 @@ class HelpDialog(Frame):
         ]
         for h in helps: layout.add_widget(Label(h))
         layout.add_widget(Divider())
-        layout.add_widget(Button("CLOSE", lambda: raise NextScene("Main")))
+        layout.add_widget(Button("CLOSE", self._back))
         self.fix()
+    def _back(self): raise NextScene("Main")
 
 class MIDIMonitor(Frame):
     def __init__(self, screen, engine):
@@ -163,8 +164,9 @@ class MIDIMonitor(Frame):
         self._log = ListBox(10, [("Waiting for MIDI...", 0)])
         layout.add_widget(self._log)
         layout.add_widget(Divider())
-        layout.add_widget(Button("BACK", lambda: raise NextScene("Main")))
+        layout.add_widget(Button("BACK", self._back))
         self.fix()
+    def _back(self): raise NextScene("Main")
     def _update(self, frame_no):
         super(MIDIMonitor, self)._update(frame_no)
         # Snapshot of midi log
