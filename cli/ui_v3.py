@@ -259,7 +259,7 @@ class LayerEditor(Frame):
         layout.add_widget(Button("SAVE AS", self._save_as), 0)
         layout.add_widget(Button("EXIT", self._back), 0)
         
-        # Right: All Parameters (Vertical scroll)
+        # Right: All Parameters
         layout.add_widget(Label("--- SETTINGS ---"), 1)
         self._active = CheckBox("Active", label="STATUS :", on_change=self._update)
         self._pgm = DropdownList([(f"{i}: {n}", i) for i, n in enumerate(engine.gm_instruments)], label="PGM    :", on_change=self._update)
@@ -267,8 +267,13 @@ class LayerEditor(Frame):
         self._trans = Text(label="TRANS  :", on_change=self._update)
         self._chord = DropdownList([('Off', 'off'), ('Octave', 'octave'), ('Major', 'major'), ('Minor', 'minor')], label="CHORD  :", on_change=self._update)
         self._arp = DropdownList([('Off', 'off'), ('Up', 'up'), ('Down', 'down')], label="ARP    :", on_change=self._update)
+        self._curve = DropdownList([('Linear', 'linear'), ('Soft', 'soft'), ('Hard', 'hard')], label="CURVE  :", on_change=self._update)
+        self._hold = DropdownList([('Normal', 'normal'), ('Smart', 'smart')], label="HOLD   :", on_change=self._update)
+        self._ensemble = DropdownList([('Off', 'off'), ('Top', 'top'), ('Bottom', 'bottom')], label="ENSEMBLE:", on_change=self._update)
+        self._min_n = Text(label="MIN N  :", on_change=self._update)
+        self._max_n = Text(label="MAX N  :", on_change=self._update)
         
-        for w in [self._active, self._pgm, self._vol, self._trans, self._chord, self._arp]:
+        for w in [self._active, self._pgm, self._vol, self._trans, self._chord, self._arp, self._curve, self._hold, self._ensemble, self._min_n, self._max_n]:
             layout.add_widget(w, 1)
         
         layout.add_widget(Divider(), 1)
@@ -291,10 +296,15 @@ class LayerEditor(Frame):
         self._trans.value = str(layer['transpose'])
         self._chord.value = layer.get('chord_mode', 'off')
         self._arp.value = layer.get('arp_mode', 'off')
+        self._curve.value = layer.get('vel_curve', 'linear')
+        self._hold.value = layer.get('hold_mode', 'normal')
+        self._ensemble.value = layer.get('ensemble_mode', 'off')
+        self._min_n.value = str(layer.get('min_note', 0))
+        self._max_n.value = str(layer.get('max_note', 127))
         self._updating = False
         self._update_help()
 
-    def _update(self):
+    def _update(self, frame_no=0):
         if self._updating: return
         layer = self._engine.layers[self._layer_idx]
         layer['active'] = self._active.value
@@ -302,9 +312,14 @@ class LayerEditor(Frame):
         layer['name'] = self._engine.gm_instruments[layer['program']]
         layer['chord_mode'] = self._chord.value
         layer['arp_mode'] = self._arp.value
+        layer['vel_curve'] = self._curve.value
+        layer['hold_mode'] = self._hold.value
+        layer['ensemble_mode'] = self._ensemble.value
         try:
             layer['volume'] = int(self._vol.value)
             layer['transpose'] = int(self._trans.value)
+            layer['min_note'] = int(self._min_n.value)
+            layer['max_note'] = int(self._max_n.value)
         except: pass
         self._layer_list.options = self._get_layer_options()
         if self._engine.running: self._engine.update_all_layer_parameters()
