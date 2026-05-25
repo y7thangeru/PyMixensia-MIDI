@@ -4,7 +4,28 @@ PyMixensia-MIDI adalah engine MIDI berbasis Python yang dirancang untuk pengolah
 
 ---
 
-## 🚀 Fitur Utama & Progress V2
+## 💎 PyMixensia-MIDI V3 (The Asciimatics Edition) - NEW!
+
+Versi V3 memperkenalkan perombakan total pada antarmuka visual menggunakan library **Asciimatics**.
+
+### Apa yang baru di V3?
+- **Cinematic Intro**: Intro animasi megah dengan efek "Rainbow Figlet" saat aplikasi dijalankan.
+- **Modern UI Widgets**: Menggunakan sistem Frame, Layout, dan Widget (Dropdown, Checkbox) yang lebih interaktif dan bersih.
+- **Advanced Visualizer (F4)**:
+    - **Starfield Background**: Latar belakang bintang yang bergerak dinamis.
+    - **Matrix Rain**: Gabungan efek Matrix dengan visualisasi nada MIDI.
+    - **3D Falling Blocks**: Visualisasi nada MIDI yang lebih halus dan berkinerja tinggi.
+- **Improved Performance**: Engine animasi berbasis frame-rate yang stabil.
+
+### Cara Menjalankan V3:
+Gunakan script launch baru:
+```bash
+./run_v3.sh
+```
+
+---
+
+## 🚀 Fitur Utama & Progress V2 (Legacy)
 
 ### 1. Arsitektur & Keandalan (MVC)
 - **MVC Refactoring**: Pemisahan total antara **Engine Inti** (`core/`) dan **Antarmuka Pengguna** (`cli/`) untuk memastikan stabilitas dan performa tinggi.
