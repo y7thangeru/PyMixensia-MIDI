@@ -114,14 +114,27 @@ class MainMenu(Frame):
         self._config.save_settings()
 
     def _toggle_engine(self):
-        if self._engine.running: self._engine.stop()
+        if self._engine.running:
+            self._engine.stop()
+            self._sync()
         else:
-            in_p, out_p = self._engine.available_in_ports, self._engine.available_out_ports
-            if in_p and out_p:
+            in_p = self._engine.available_in_ports
+            out_p = self._engine.available_out_ports
+            
+            if not in_p or not out_p:
+                self._scene.add_effect(PopUpDialog(self._screen, "ERROR: No MIDI devices found!", ["OK"]))
+                return
+
+            try:
                 in_idx = self._in_port.value if self._in_port.value is not None else 0
                 out_idx = self._out_port.value if self._out_port.value is not None else 0
-                self._engine.start(in_p[in_idx], out_p[out_idx])
-        self._sync()
+                
+                if self._engine.start(in_p[in_idx], out_p[out_idx]):
+                    self._sync()
+                else:
+                    self._scene.add_effect(PopUpDialog(self._screen, "FAILED: Could not open MIDI ports.", ["OK"]))
+            except Exception as e:
+                self._scene.add_effect(PopUpDialog(self._screen, f"CRITICAL: {str(e)}", ["OK"]))
 
     def _open_presets(self): raise NextScene("Presets")
     def _open_editor(self): raise NextScene("Editor")
