@@ -240,7 +240,7 @@ class PresetSelector(Frame):
 
 class LayerEditor(Frame):
     def __init__(self, screen, engine, config):
-        super(LayerEditor, self).__init__(screen, screen.height, screen.width, has_border=True, title=" 🛠️  LAYER EDITOR V3  🛠️ ")
+        super(LayerEditor, self).__init__(screen, screen.height, screen.width, has_border=True, title=f" 🛠️  EDITOR: {engine.current_preset_name} 🛠️ ")
         self._engine = engine
         self._config = config
         self._layer_idx = 0
@@ -251,7 +251,7 @@ class LayerEditor(Frame):
         
         # Col 0: Layer Selection
         layout.add_widget(Label("--- SELECT LAYER ---"), 0)
-        self._layer_list = ListBox(16, [(f"Layer {i+1}", i) for i in range(16)], on_change=self._on_layer_change)
+        self._layer_list = ListBox(16, self._get_layer_options(), on_change=self._on_layer_change)
         layout.add_widget(self._layer_list, 0)
         layout.add_widget(Divider(), 0)
         layout.add_widget(Button("SAVE PRESET", self._save), 0)
@@ -262,7 +262,7 @@ class LayerEditor(Frame):
         layout.add_widget(Label("--- PARAMETERS ---"), 1)
         self._active = CheckBox("Active Status", label="STATUS   :", on_change=self._update_layer)
         self._channel = DropdownList([(str(i+1), i) for i in range(16)], label="CHANNEL  :", on_change=self._update_layer)
-        self._program = Text(label="PROGRAM  :", on_change=self._update_layer)
+        self._program = DropdownList([(f"{i}: {name}", i) for i, name in enumerate(engine.gm_instruments)], label="PROGRAM  :", on_change=self._update_layer)
         self._volume = Text(label="VOLUME   :", on_change=self._update_layer)
         self._transpose = Text(label="TRANSPOSE:", on_change=self._update_layer)
         
@@ -294,6 +294,14 @@ class LayerEditor(Frame):
         self.fix()
         self._on_layer_change()
 
+    def _get_layer_options(self):
+        options = []
+        for i, layer in enumerate(self._engine.layers):
+            status = "[ON]" if layer['active'] else "[..]"
+            name = layer['name'][:20]
+            options.append((f"{i+1:02d} {status} {name}", i))
+        return options
+
     def _on_layer_change(self):
         self._layer_idx = self._layer_list.value if self._layer_list.value is not None else 0
         layer = self._engine.layers[self._layer_idx]
@@ -301,7 +309,7 @@ class LayerEditor(Frame):
         # Sync widgets with layer data
         self._active.value = layer['active']
         self._channel.value = layer['channel']
-        self._program.value = str(layer['program'])
+        self._program.value = layer['program']
         self._volume.value = str(layer['volume'])
         self._transpose.value = str(layer['transpose'])
         self._chord.value = layer.get('chord_mode', 'off')
@@ -318,6 +326,8 @@ class LayerEditor(Frame):
         layer = self._engine.layers[self._layer_idx]
         layer['active'] = self._active.value
         layer['channel'] = self._channel.value
+        layer['program'] = self._program.value
+        layer['name'] = self._engine.gm_instruments[layer['program']]
         layer['chord_mode'] = self._chord.value
         layer['arp_mode'] = self._arp.value
         layer['vel_curve'] = self._curve.value
@@ -325,7 +335,6 @@ class LayerEditor(Frame):
         layer['ensemble_mode'] = self._ensemble.value
         
         try:
-            layer['program'] = int(self._program.value)
             layer['volume'] = int(self._volume.value)
             layer['transpose'] = int(self._transpose.value)
             layer['min_note'] = int(self._min_note.value)
@@ -333,6 +342,9 @@ class LayerEditor(Frame):
             layer['min_vel'] = int(self._min_vel.value)
             layer['max_vel'] = int(self._max_vel.value)
         except: pass
+
+        # Update layer list display dynamically
+        self._layer_list.options = self._get_layer_options()
 
         # Update dynamic help based on focused widget
         self._update_help()
@@ -342,11 +354,7 @@ class LayerEditor(Frame):
     def _update_help(self):
         # Helper to get program display name safely
         pgm_val = self._program.value
-        pgm_name = "N/A"
-        if pgm_val and pgm_val.isdigit():
-            pgm_int = int(pgm_val)
-            if 0 <= pgm_int <= 127:
-                pgm_name = self._engine.gm_instruments[pgm_int]
+        pgm_name = self._engine.gm_instruments[pgm_val] if pgm_val is not None else "N/A"
 
         help_data = {
             "STATUS": ("Status Aktif layer ini.", "CONTOH: OFF untuk mematikan layer sementara."),
