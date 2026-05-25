@@ -367,7 +367,7 @@ class LayerEditor(Frame):
         
         # Determine which widget is focused and update help
         focused = self.focused_widget
-        if hasattr(focused, 'label'):
+        if hasattr(focused, 'label') and focused.label is not None:
             label = focused.label.replace(":", "").strip()
             if label in help_data:
                 self._help_title.text = f"⚙️ PARAMETER: {label}"
