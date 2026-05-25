@@ -291,7 +291,9 @@ class LayerEditor(Frame):
         layout.add_widget(Label(""), 2) # Spacer
         layout.add_widget(self._help_example, 2)
         # Add a dummy disabled button or readonly text to make layout "live" for focus
-        layout.add_widget(Text(label="INFO", readonly=True), 2)
+        layout.add_widget(Text(label="INFO", readonly=True, name="info_anchor"), 2)
+        # Initialize with empty string to avoid NoneType errors in asciimatics
+        self.find_widget("info_anchor").value = ""
         
         self.fix()
         self._on_layer_change()
