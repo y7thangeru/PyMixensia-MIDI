@@ -31,20 +31,20 @@ class MIDIVisualizer(Effect):
     def _update(self, frame_no):
         h, w = self._screen.dimensions
         mode = self._engine.visualizer_mode
-        mode_names = ["FIREWORKS", "STARS", "RIPPLES", "FALLING", "TETRIS", "SPECTRUM", "WORMHOLE", "LASERS"]
-        
+        mode_names = ["FIREWORKS", "STARS", "RIPPLES", "FALLING", "TETRIS", "SPECTRUM", "WORMHOLE", "LASERS", "MATRIX"]
+
         # UI Overlays
         self._screen.print_at(f" MODE: {mode_names[mode]} ", (w-20)//2, 0, Screen.COLOUR_CYAN, attr=Screen.A_BOLD)
         self._screen.print_at("[Left/Right] Mode | [D] Demo | [ESC] Back", (w-40)//2, h-2, Screen.COLOUR_WHITE)
 
         # Capture engine particles
         while self._engine.particles: self._local_particles.append(self._engine.particles.pop(0))
-        
+
         remaining = []
         for p in self._local_particles:
             color_map = {1: Screen.COLOUR_GREEN, 2: Screen.COLOUR_RED, 3: Screen.COLOUR_CYAN, 4: Screen.COLOUR_YELLOW, 5: Screen.COLOUR_MAGENTA, 6: Screen.COLOUR_BLUE}
             color = color_map.get(p.get('color', 1), Screen.COLOUR_WHITE)
-            
+
             if p['type'] == 'firework':
                 p['x'] += p['vx']; p['y'] += p['vy']; p['vy'] += 0.1; p['life'] -= 0.02
                 if p['life'] > 0 and 0 <= p['x'] < w and 0 <= p['y'] < h:
@@ -97,15 +97,27 @@ class MIDIVisualizer(Effect):
                         if random.random() < p['life']:
                             self._screen.print_at("║", int(p['x']), i, color)
                     remaining.append(p)
+            elif p['type'] == 'matrix':
+                p['y'] += p['speed']
+                if p['y'] < h:
+                    # Draw trail
+                    for i in range(int(p['len'])):
+                        yy = int(p['y'] - i)
+                        if 0 <= yy < h - 2:
+                            char = chr(random.randint(33, 126))
+                            attr = Screen.A_BOLD if i == 0 else Screen.A_NORMAL
+                            self._screen.print_at(char, int(p['x']), yy, Screen.COLOUR_GREEN, attr=attr)
+                    remaining.append(p)
+
         self._local_particles = remaining
 
     def process_event(self, event):
         if hasattr(event, 'key_code'):
             if event.key_code == Screen.KEY_LEFT:
-                self._engine.visualizer_mode = (self._engine.visualizer_mode - 1) % 8
+                self._engine.visualizer_mode = (self._engine.visualizer_mode - 1) % 9
                 self._local_particles = []
             elif event.key_code == Screen.KEY_RIGHT:
-                self._engine.visualizer_mode = (self._engine.visualizer_mode + 1) % 8
+                self._engine.visualizer_mode = (self._engine.visualizer_mode + 1) % 9
                 self._local_particles = []
             elif event.key_code == ord('d'):
                 h, w = self._screen.dimensions
@@ -124,8 +136,10 @@ class MIDIVisualizer(Effect):
                         speed = random.uniform(1.0, 3.0)
                         self._local_particles.append({'type': 'wormhole', 'x': float(w/2), 'y': float(h/2), 'vx': math.cos(angle)*speed*2, 'vy': math.sin(angle)*speed, 'char': random.choice(['.', '*', '+', 'O']), 'color': random.randint(1,6)})
                 elif mode == 7: self._local_particles.append({'type': 'laser', 'x': x, 'life': 1.0, 'color': random.randint(1,6)})
+                elif mode == 8: self._local_particles.append({'type': 'matrix', 'x': x, 'y': 0.0, 'speed': random.uniform(0.4, 0.8), 'len': random.randint(5, 12)})
             elif event.key_code in [ord('q'), 27, Screen.KEY_F4]: raise NextScene("Main")
         return event
+
     def reset(self): self._local_particles = []
 
 class MainMenu(Frame):
@@ -390,6 +404,7 @@ def draw_menu_v3(screen, engine, config):
                     speed = random.uniform(1.0, 2.0)
                     engine.particles.append({'type': 'wormhole', 'x': float(w/2), 'y': float(h/2), 'vx': math.cos(angle)*speed*2, 'vy': math.sin(angle)*speed, 'char': random.choice(['.', '*', '+']), 'color': random.randint(1,6)})
             elif engine.visualizer_mode == 7: engine.particles.append({'type': 'laser', 'x': x, 'life': 1.0, 'color': random.randint(1,6)})
+            elif engine.visualizer_mode == 8: engine.particles.append({'type': 'matrix', 'x': x, 'y': 0.0, 'speed': random.uniform(0.4, 0.8), 'len': random.randint(5, 12)})
             engine._original_handle_note_on(msg)
         engine.handle_note_on = v_on
     main, presets, editor, save_as, visual, help_d, monitor = MainMenu(screen, engine, config), PresetSelector(screen, engine, config), LayerEditor(screen, engine, config), FilenameDialog(screen, lambda n: (config.save_preset(n), setattr(engine, 'current_preset_name', n))), MIDIVisualizer(screen, engine), HelpDialog(screen), MIDIMonitor(screen, engine)
