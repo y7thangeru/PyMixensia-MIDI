@@ -48,7 +48,15 @@ class MIDIVisualizer(Effect):
         self._local_particles = remaining
     def process_event(self, event):
         if hasattr(event, 'key_code'):
-            if event.key_code in [ord('q'), 27, Screen.KEY_F4]: raise NextScene("Main")
+            if event.key_code == Screen.KEY_LEFT:
+                self._engine.visualizer_mode = (self._engine.visualizer_mode - 1) % 5
+                self._local_particles = []
+                return None
+            elif event.key_code == Screen.KEY_RIGHT:
+                self._engine.visualizer_mode = (self._engine.visualizer_mode + 1) % 5
+                self._local_particles = []
+                return None
+            elif event.key_code in [ord('q'), 27, Screen.KEY_F4]: raise NextScene("Main")
         return event
     def reset(self): self._local_particles = []
 
