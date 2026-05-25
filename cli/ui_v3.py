@@ -244,21 +244,22 @@ class LayerEditor(Frame):
         self._engine = engine
         self._config = config
         self._layer_idx = 0
+        self._updating_widgets = False
         
-        # Main layout: Layer Selection (Left), Parameters (Middle), Manual Guide (Right)
-        layout = Layout([1, 2, 2], fill_frame=True)
+        # New Stable Layout: Left (Layers), Right (Params + Help)
+        layout = Layout([1, 4], fill_frame=True)
         self.add_layout(layout)
         
-        # Col 0: Layer Selection
-        layout.add_widget(Label("--- SELECT LAYER ---"), 0)
-        self._layer_list = ListBox(16, self._get_layer_options(), on_change=self._on_layer_change)
+        # Col 0: Layer Selection (Reduced height for compatibility)
+        layout.add_widget(Label("--- LAYERS ---"), 0)
+        self._layer_list = ListBox(10, self._get_layer_options(), on_change=self._on_layer_change)
         layout.add_widget(self._layer_list, 0)
         layout.add_widget(Divider(), 0)
         layout.add_widget(Button("SAVE PRESET", self._save), 0)
         layout.add_widget(Button("SAVE AS...", self._save_as), 0)
         layout.add_widget(Button("BACK TO MENU", self._back), 0)
         
-        # Col 1: Parameters (The full list from V2)
+        # Col 1: Parameters & Manual
         layout.add_widget(Label("--- PARAMETERS ---"), 1)
         self._active = CheckBox("Active Status", label="STATUS   :", on_change=self._update_layer)
         self._channel = DropdownList([(str(i+1), i) for i in range(16)], label="CHANNEL  :", on_change=self._update_layer)
@@ -280,20 +281,10 @@ class LayerEditor(Frame):
         for w in [self._active, self._channel, self._program, self._volume, self._transpose, self._chord, self._arp, self._curve, self._hold, self._ensemble, self._min_note, self._max_note, self._min_vel, self._max_vel]:
             layout.add_widget(w, 1)
         
-        # Col 2: Manual Guide (Dynamic)
-        layout.add_widget(Label("--- BUKU MANUAL / HELP ---"), 2)
-        self._help_title = Label("Pilih parameter di kiri...")
-        self._help_desc = Label("")
-        self._help_example = Label("")
-        layout.add_widget(self._help_title, 2)
-        layout.add_widget(Divider(), 2)
-        layout.add_widget(self._help_desc, 2)
-        layout.add_widget(Label(""), 2) # Spacer
-        layout.add_widget(self._help_example, 2)
-        # Add a dummy disabled button or readonly text to make layout "live" for focus
-        layout.add_widget(Text(label="INFO", readonly=True, name="info_anchor"), 2)
-        # Initialize with empty string to avoid NoneType errors in asciimatics
-        self.find_widget("info_anchor").value = ""
+        layout.add_widget(Divider(), 1)
+        layout.add_widget(Label("--- MANUAL GUIDE ---"), 1)
+        self._help_text = Label("Focus a field to see help here...")
+        layout.add_widget(self._help_text, 1)
         
         self.fix()
         self._on_layer_change()
@@ -361,42 +352,36 @@ class LayerEditor(Frame):
 
         # Update layer list display dynamically
         self._layer_list.options = self._get_layer_options()
-
-        # Update dynamic help based on focused widget
         self._update_help()
         
         if self._engine.running: self._engine.update_all_layer_parameters()
 
     def _update_help(self):
-        # Helper to get program display name safely
         pgm_val = self._program.value
         pgm_name = self._engine.gm_instruments[pgm_val] if pgm_val is not None else "N/A"
 
         help_data = {
-            "STATUS": ("Status Aktif layer ini.", "CONTOH: OFF untuk mematikan layer sementara."),
-            "CHANNEL": ("Saluran output MIDI (1-16).", "CONTOH: Ch 1 untuk Piano, Ch 2 untuk Strings."),
-            "PROGRAM": ("Jenis suara instrumen (0-127).", f"HASIL: {pgm_name}"),
-            "VOLUME": ("Kekuatan suara (0-127).", "TIPS: Layer Strings biasanya lebih pelan (Vol: 60)."),
-            "TRANSPOSE": ("Geser nada per semitone.", "TIPS: +12 untuk naik 1 oktav."),
-            "CHORD": ("Harmonisasi otomatis nada tunggal.", "POWER: Menambah nada kuinta dan oktav."),
-            "ARP": ("Memainkan nada secara berurutan.", "UP: Nada rendah ke tinggi secara ritmis."),
-            "CURVE": ("Respon dinamika sentuhan piano.", "SOFT: Suara lebih lembut meski ditekan keras."),
-            "HOLD": ("Logika sustain/penahanan nada.", "SMART: Hemat CPU dengan membatasi nota tumpuk."),
-            "ENSEMBLE": ("Pemisah suara cerdas berdasarkan nada.", "TOP: Hanya nada tertinggi yang bunyi (Melodi)."),
-            "MIN NOTE": ("Batas nada terendah (0-127).", "TIPS: 60 adalah nada C3 tengah."),
-            "MAX NOTE": ("Batas nada tertinggi (0-127).", "HASIL: Area keyboard terbagi secara visual."),
-            "MIN VEL": ("Sensitivitas tekanan minimal layer.", "TIPS: Layer Strings hanya bunyi saat ditekan kuat."),
-            "MAX VEL": ("Sensitivitas tekanan maksimal layer.", "HASIL: Layering dinamis berdasarkan ekspresi."),
+            "STATUS": f"Status Aktif layer. | HASIL: {'BUNYI' if self._active.value else 'SENYAP'}",
+            "CHANNEL": "Saluran MIDI (1-16). Harus sama dengan Synthesizer Anda.",
+            "PROGRAM": f"Jenis suara (0-127). | INSTRUMEN: {pgm_name}",
+            "VOLUME": "Volume layer (0-127). Atur mix seimbang antar layer.",
+            "TRANSPOSE": "Geser nada. +12 = naik 1 oktav, -12 = turun 1 oktav.",
+            "CHORD": "Smart Chord: Menghasilkan harmoni otomatis dari 1 jari.",
+            "ARP": "Arpeggiator: Memainkan pola nada secara ritmis.",
+            "CURVE": "Sensitivity Curve: Soft (sensitif), Hard (berat), Fixed (rata).",
+            "HOLD": "Smart Hold: Mencegah nota menumpuk (Hemat CPU).",
+            "ENSEMBLE": "Voice Splitting: Top (ambil nada tertinggi saja).",
+            "MIN NOTE": "Batas bawah area keyboard (0-127). 60 = C3.",
+            "MAX NOTE": "Batas atas area keyboard (0-127).",
+            "MIN VEL": "Minimum velocity agar layer berbunyi.",
+            "MAX VEL": "Maximum velocity agar layer berbunyi.",
         }
         
-        # Determine which widget is focused and update help
         focused = self.focussed_widget
-        if hasattr(focused, 'label') and focused.label is not None:
+        if focused and hasattr(focused, 'label') and focused.label:
             label = focused.label.replace(":", "").strip()
             if label in help_data:
-                self._help_title.text = f"⚙️ PARAMETER: {label}"
-                self._help_desc.text = help_data[label][0]
-                self._help_example.text = help_data[label][1]
+                self._help_text.text = f"💡 {label}: {help_data[label]}"
 
     def _save(self):
         if self._engine.current_preset_name not in ["None", "New Preset"]: 
@@ -417,7 +402,7 @@ class LayerEditor(Frame):
     
     def process_event(self, event):
         res = super(LayerEditor, self).process_event(event)
-        self._update_help() # Always update help on interactions
+        self._update_help()
         return res
 
 def draw_menu_v3(screen, engine, config):
